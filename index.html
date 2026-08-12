@@ -603,7 +603,9 @@ var SEED_CONTACTS = [
   function defaultState() {
     return {
       v: 1,
-      updatedAt: Date.now(),
+      // 0 = מצב התחלתי שמעולם לא נשמר. חשוב: כך עותק ריק במכשיר חדש
+      // לעולם לא "מנצח" את העותק שבענן ולא דורס אותו.
+      updatedAt: 0,
       settings: {
         moveDate: '',
         fromAddr: '',
@@ -640,7 +642,7 @@ var SEED_CONTACTS = [
         if (!Array.isArray(s[k])) s[k] = d[k];
       });
       s.settings = Object.assign({}, d.settings, s.settings || {});
-      s.updatedAt = s.updatedAt || Date.now();
+      s.updatedAt = s.updatedAt || 0;
       return s;
     } catch (e) { return defaultState(); }
   }
@@ -772,6 +774,8 @@ var SEED_CONTACTS = [
       if (!data || !data.payload) return;
       var remote;
       try { remote = JSON.parse(data.payload); } catch (e) { return; }
+      // הענן מנצח רק אם הוא חדש יותר מהעותק המקומי.
+      // במכשיר חדש state.updatedAt הוא 0, ולכן הנתונים מהענן תמיד נטענים.
       if (!remote.updatedAt || remote.updatedAt <= state.updatedAt) return;
       state = remote;
       safeLS.set(LS_DATA, JSON.stringify(state));
@@ -786,6 +790,8 @@ var SEED_CONTACTS = [
   function cloudPush() {
     if (!cloud.ready || !cloud.ref) return;
     var fs = cloud.mod.fs;
+    // מסמך חדש בענן צריך חותמת זמן אמיתית, גם אם עוד לא בוצע שינוי מקומי
+    if (!state.updatedAt) state.updatedAt = Date.now();
     fs.setDoc(cloud.ref, { payload: JSON.stringify(state), updatedAt: state.updatedAt })
       .catch(function (e) { console.error(e); setSyncBadge('שמירה נכשלה', 'err'); });
   }
