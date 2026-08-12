@@ -656,12 +656,28 @@ var SEED_CONTACTS = [
   }
 
   /* ---------- סנכרון ענן (Firebase Firestore) ---------- */
-  var cloud = { ready: false, db: null, ref: null, unsub: null, lastPush: 0, user: null, mod: {} };
+  var cloud = { ready: false, db: null, auth: null, ref: null, unsub: null, user: null, mod: {} };
+
+  // הגדרות הפרויקט של האפליקציה. מפתח ה-API של Firebase לצד לקוח אינו סוד –
+  // הוא מיועד להיות גלוי בקוד. ההגנה עצמה מגיעה מכללי האבטחה של Firestore
+  // (כל משתמש ניגש רק למסמך שלו) ומרשימת הדומיינים המורשים.
+  var FB_CONFIG = {
+    apiKey: 'AIzaSyBRXtjFbFYrkWxNCan9UB17hUND8ax41SU',
+    authDomain: 'afula-move.firebaseapp.com',
+    projectId: 'afula-move',
+    storageBucket: 'afula-move.firebasestorage.app',
+    messagingSenderId: '691992999528',
+    appId: '1:691992999528:web:4a9a92dc3d420190ebeddd'
+  };
 
   function getCfg() {
-    try { return JSON.parse(safeLS.get(LS_CFG) || 'null'); } catch (e) { return null; }
+    // אפשר לעקוף בהגדרות מקומיות, אחרת משתמשים בפרויקט המובנה
+    try {
+      var custom = JSON.parse(safeLS.get(LS_CFG) || 'null');
+      if (custom && custom.apiKey && custom.projectId) return custom;
+    } catch (e) {}
+    return FB_CONFIG;
   }
-  function getSpace() { return safeLS.get(LS_SPACE) || ''; }
 
   function setSyncBadge(txt, cls) {
     var b = $('#syncBadge');
@@ -686,29 +702,66 @@ var SEED_CONTACTS = [
       var auth = authMod.getAuth(app);
       cloud.db = fsMod.getFirestore(app);
 
+      cloud.auth = auth;
+
+      // חוזרים מהתחברות שהתבצעה בהפניה (נפוץ בדפדפני מובייל)
+      authMod.getRedirectResult(auth).catch(function () {});
+
       authMod.onAuthStateChanged(auth, function (user) {
         cloud.user = user;
         if (!user) {
-          authMod.signInAnonymously(auth).catch(function (e) {
-            setSyncBadge('שגיאת התחברות', 'err');
-            console.error(e);
-          });
+          detachDoc();
+          setSyncBadge('לא מחובר');
           return;
         }
+        // כל חשבון Google מקבל מסמך משלו, לפי המזהה הייחודי שלו
         attachDoc(user.uid);
       });
-      cloud.auth = auth;
     } catch (e) {
       console.error(e);
       setSyncBadge('אין חיבור', 'err');
     }
   }
 
-  function attachDoc(fallbackId) {
+  function signIn() {
+    var authMod = cloud.mod.auth;
+    if (!authMod || !cloud.auth) { toast('הסנכרון אינו זמין כרגע'); return; }
+    setSyncBadge('מתחבר…');
+    var provider = new authMod.GoogleAuthProvider();
+    authMod.signInWithPopup(cloud.auth, provider).catch(function (e) {
+      var code = (e && e.code) || '';
+      // חלונות קופצים חסומים בחלק מדפדפני המובייל – עוברים להתחברות בהפניה
+      if (/popup-blocked|popup-closed|cancelled-popup|operation-not-supported/.test(code)) {
+        authMod.signInWithRedirect(cloud.auth, provider).catch(function (err) {
+          console.error(err); setSyncBadge('ההתחברות נכשלה', 'err');
+        });
+        return;
+      }
+      console.error(e);
+      setSyncBadge('ההתחברות נכשלה', 'err');
+      toast(code === 'auth/unauthorized-domain'
+        ? 'הדומיין הזה לא מאושר בפרויקט Firebase'
+        : 'ההתחברות נכשלה');
+    });
+  }
+
+  function signOutNow() {
+    if (!cloud.mod.auth || !cloud.auth) return;
+    cloud.mod.auth.signOut(cloud.auth).then(function () {
+      toast('התנתקת. הנתונים נשארו שמורים במכשיר הזה.');
+    });
+  }
+
+  function detachDoc() {
+    if (cloud.unsub) { cloud.unsub(); cloud.unsub = null; }
+    cloud.ready = false;
+    cloud.ref = null;
+  }
+
+  function attachDoc(uid) {
     var fs = cloud.mod.fs;
-    var spaceId = getSpace() || fallbackId;
-    if (cloud.unsub) cloud.unsub();
-    cloud.ref = fs.doc(cloud.db, 'moves', spaceId);
+    detachDoc();
+    cloud.ref = fs.doc(cloud.db, 'moves', uid);
     cloud.ready = true;
     setSyncBadge('מסונכרן', 'on');
 
@@ -1273,7 +1326,6 @@ var SEED_CONTACTS = [
   /* ---------- הגדרות ---------- */
   function openSettings() {
     var s = state.settings;
-    var cfg = getCfg();
     var ov = $('#overlay');
     ov.innerHTML = '<div class="sheet">' +
       '<div class="row"><h2>הגדרות</h2><span class="spacer"></span><button class="x" data-s="close">✕</button></div>' +
@@ -1292,14 +1344,15 @@ var SEED_CONTACTS = [
       'לאירוח עם Firebase – ההוראות המלאות בקובץ ה־README.<br><br>' +
       'בינתיים אפשר להעביר נתונים בין מכשירים דרך <b>ייצוא</b> ו<b>ייבוא</b> של קובץ גיבוי, למטה.</div></div>'
       :
-      '<div class="sect"><h3>סנכרון בין מכשירים (Firebase)</h3>' +
-      '<div class="small muted" style="margin-bottom:8px">מדביקים כאן את אובייקט ההגדרות מ־Firebase Console ← Project settings ← Your apps ← Web app. ההוראות המלאות ב־README.</div>' +
-      '<label class="f">Firebase config (JSON)<textarea id="stCfg" placeholder=\'{"apiKey":"…","authDomain":"…","projectId":"…","appId":"…"}\' style="min-height:110px;font-family:monospace;direction:ltr;text-align:left">' +
-      esc(cfg ? JSON.stringify(cfg, null, 1) : '') + '</textarea></label>' +
-      '<label class="f" style="margin-top:8px">קוד מרחב משותף (אופציונלי)<input id="stSpace" value="' + esc(getSpace()) + '" placeholder="למשל: mishpaha-afula-2026" style="direction:ltr;text-align:left"></label>' +
-      '<div class="small muted">אותו קוד בשני מכשירים = אותו לוח תכנון. בלי קוד – לכל מכשיר לוח משלו.</div>' +
-      '<div class="row" style="margin-top:10px"><button class="btn primary" data-s="savecfg">שמור והתחבר</button>' +
-      '<button class="btn" data-s="clearcfg">נתק סנכרון</button></div></div>') +
+      '<div class="sect"><h3>סנכרון בין מכשירים</h3>' +
+      (cloud.user
+        ? '<div class="small">מחובר כ־<b>' + esc(cloud.user.email || cloud.user.displayName || '') + '</b></div>' +
+          '<div class="small muted" style="margin-top:6px">כל שינוי נשמר בענן ומופיע מיד בכל מכשיר שמחובר לאותו חשבון Google.</div>' +
+          '<div class="row" style="margin-top:10px"><button class="btn" data-s="signout">התנתקות</button></div>'
+        : '<div class="small muted" style="margin-bottom:10px">מתחברים עם חשבון Google, וכל המכשירים שלכם רואים את אותו לוח תכנון בזמן אמת. ' +
+          'בלי התחברות הנתונים נשמרים רק במכשיר הזה.</div>' +
+          '<div class="row"><button class="btn primary" data-s="signin">התחברות עם Google</button></div>'
+      ) + '</div>') +
 
       '<div class="sect"><h3>גיבוי</h3><div class="row">' +
       '<button class="btn" data-s="export">⬇️ ייצוא לקובץ</button>' +
@@ -1328,24 +1381,8 @@ var SEED_CONTACTS = [
         s.toAddr = $('#stTo').value;
         save(); render(); ov.classList.add('hidden'); toast('נשמר');
       }
-      else if (a === 'savecfg') {
-        var txt = $('#stCfg').value.trim();
-        if (txt) {
-          var parsed = parseCfg(txt);
-          if (!parsed) { toast('ה־config לא תקין'); return; }
-          safeLS.set(LS_CFG, JSON.stringify(parsed));
-        }
-        var space = $('#stSpace').value.trim();
-        if (space && space.length < 8) { toast('קוד המרחב חייב להיות באורך 8 תווים לפחות'); return; }
-        safeLS.set(LS_SPACE, space);
-        toast('מתחבר…');
-        ov.classList.add('hidden');
-        location.reload();
-      }
-      else if (a === 'clearcfg') {
-        safeLS.del(LS_CFG); safeLS.del(LS_SPACE);
-        toast('הסנכרון נותק'); ov.classList.add('hidden'); location.reload();
-      }
+      else if (a === 'signin') { ov.classList.add('hidden'); signIn(); }
+      else if (a === 'signout') { ov.classList.add('hidden'); signOutNow(); }
       else if (a === 'export') exportJSON();
       else if (a === 'import') $('#stFile').click();
       else if (a === 'reset') {
@@ -1368,21 +1405,6 @@ var SEED_CONTACTS = [
       };
       r.readAsText(f);
     };
-  }
-
-  function parseCfg(txt) {
-    // תומך גם בהדבקה של הקטע "const firebaseConfig = {...};"
-    try { return JSON.parse(txt); } catch (e) {}
-    var m = txt.match(/\{[\s\S]*\}/);
-    if (!m) return null;
-    try {
-      var json = m[0]
-        .replace(/([{,]\s*)([A-Za-z0-9_]+)\s*:/g, '$1"$2":')
-        .replace(/'/g, '"')
-        .replace(/,\s*}/g, '}');
-      var o = JSON.parse(json);
-      return (o.apiKey && o.projectId) ? o : null;
-    } catch (e) { return null; }
   }
 
   function exportJSON() {
