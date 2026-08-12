@@ -3,11 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>המעבר לעפולה · העבודה 28</title>
+<title>ניהול מעבר דירה</title>
 <meta name="theme-color" content="#0f766e">
-<meta name="description" content="תכנון המעבר לדירה ברחוב העבודה 28, עפולה">
+<meta name="description" content="תכנון וניהול מעבר דירה: משימות, קניות, ארגזים, תקציב ושירותים">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="המעבר לעפולה">
+<meta name="apple-mobile-web-app-title" content="ניהול מעבר דירה">
 <link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj4KICA8cmVjdCB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgcng9IjExMiIgZmlsbD0iIzBmNzY2ZSIvPgogIDxwYXRoIGQ9Ik0yNTYgOTYgMTE2IDIxMHYyMDZoOTZWMzAwaDg4djExNmg5NlYyMTB6IiBmaWxsPSIjY2NmYmYxIi8+CiAgPHJlY3QgeD0iMTk2IiB5PSIzMzAiIHdpZHRoPSIxMjAiIGhlaWdodD0iODYiIHJ4PSIxMCIgZmlsbD0iIzBmNzY2ZSIvPgogIDxyZWN0IHg9IjE5NiIgeT0iMzMwIiB3aWR0aD0iMTIwIiBoZWlnaHQ9IjE4IiByeD0iOCIgZmlsbD0iIzVlZWFkNCIvPgogIDxyZWN0IHg9IjI0NiIgeT0iMzMwIiB3aWR0aD0iMjAiIGhlaWdodD0iODYiIGZpbGw9IiM1ZWVhZDQiLz4KPC9zdmc+">
 <link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj4KICA8cmVjdCB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgcng9IjExMiIgZmlsbD0iIzBmNzY2ZSIvPgogIDxwYXRoIGQ9Ik0yNTYgOTYgMTE2IDIxMHYyMDZoOTZWMzAwaDg4djExNmg5NlYyMTB6IiBmaWxsPSIjY2NmYmYxIi8+CiAgPHJlY3QgeD0iMTk2IiB5PSIzMzAiIHdpZHRoPSIxMjAiIGhlaWdodD0iODYiIHJ4PSIxMCIgZmlsbD0iIzBmNzY2ZSIvPgogIDxyZWN0IHg9IjE5NiIgeT0iMzMwIiB3aWR0aD0iMTIwIiBoZWlnaHQ9IjE4IiByeD0iOCIgZmlsbD0iIzVlZWFkNCIvPgogIDxyZWN0IHg9IjI0NiIgeT0iMzMwIiB3aWR0aD0iMjAiIGhlaWdodD0iODYiIGZpbGw9IiM1ZWVhZDQiLz4KPC9zdmc+">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -59,7 +59,7 @@ body{
   font-family:"Rubik","Assistant",system-ui,-apple-system,"Segoe UI","Noto Sans Hebrew",Arial,sans-serif;
   background:var(--bg); color:var(--text);
   -webkit-text-size-adjust:100%;
-  padding-bottom:calc(78px + env(safe-area-inset-bottom));
+  padding-bottom:calc(28px + env(safe-area-inset-bottom));
 }
 button,input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
 h1,h2,h3{margin:0}
@@ -90,32 +90,62 @@ a{color:var(--brand)}
 .chip.on{background:var(--ok-soft);border-color:transparent;color:var(--ok)}
 .chip.err{background:var(--danger-soft);border-color:transparent;color:var(--danger)}
 
-/* ---- Tabs ---- */
-.tabs{
-  position:fixed;bottom:0;inset-inline:0;z-index:45;
-  display:flex;gap:2px;background:var(--card);border-top:1px solid var(--line);
-  padding:6px 6px calc(6px + env(safe-area-inset-bottom));
-  overflow-x:auto;scrollbar-width:none
+/* ---- Search bar ---- */
+.searchbar{
+  position:sticky;top:59px;z-index:38;
+  display:flex;align-items:center;gap:8px;
+  padding:8px 12px;background:var(--card);border-bottom:1px solid var(--line)
 }
-.tabs::-webkit-scrollbar{display:none}
-/* 8 לשוניות חייבות להיכנס יחד גם במסך צר – מתכווצות ולא נגללות */
-.tab{
-  flex:1 1 0;min-width:0;border:0;background:transparent;border-radius:11px;
-  padding:6px 2px;display:flex;flex-direction:column;align-items:center;gap:3px;
-  cursor:pointer;color:var(--muted);font-size:10px;font-weight:500;
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis
+.searchbar .search-ico{font-size:14px;opacity:.65;flex:none}
+.searchbar input{
+  flex:1;min-width:0;border-radius:999px;padding:8px 12px;
+  background:var(--card-2);border:1px solid var(--line)
 }
-.tab i{font-style:normal;font-size:18px;line-height:1}
-@media(max-width:359px){.tab{font-size:9px}.tab i{font-size:17px}}
-.tab.active{color:var(--brand);background:var(--brand-soft)}
-@media(min-width:820px){
-  body{padding-bottom:32px}
-  .tabs{
-    position:sticky;top:59px;bottom:auto;border-top:0;border-bottom:1px solid var(--line);
-    padding:8px 14px;gap:6px
-  }
-  .tab{flex:0 0 auto;flex-direction:row;font-size:14px;padding:8px 14px;overflow:visible}
+.searchbar input::-webkit-search-cancel-button{display:none}
+.searchbar .x{flex:none}
+.search-note{
+  display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+  background:var(--brand-soft);color:var(--brand-ink);
+  border-radius:12px;padding:8px 12px;font-size:13px;margin-bottom:12px
 }
+@media (prefers-color-scheme: dark){.search-note{color:var(--brand)}}
+
+/* ---- Drawer (תפריט צד) ---- */
+.drawer{
+  position:fixed;top:0;right:0;bottom:0;z-index:70;
+  width:270px;max-width:84vw;
+  background:var(--card);border-inline-start:1px solid var(--line);
+  box-shadow:-12px 0 32px rgba(15,23,42,.18);
+  padding:10px 10px calc(10px + env(safe-area-inset-bottom));
+  padding-top:calc(10px + env(safe-area-inset-top));
+  overflow-y:auto;
+  transform:translateX(100%);
+  transition:transform .22s ease
+}
+.drawer.open{transform:translateX(0)}
+@media (prefers-reduced-motion: reduce){.drawer{transition:none}}
+.drawer-head{
+  display:flex;align-items:center;gap:8px;
+  padding:6px 8px 12px;margin-bottom:6px;border-bottom:1px solid var(--line)
+}
+.drawer-head strong{font-size:15px}
+.nav-item{
+  display:flex;align-items:center;gap:12px;width:100%;
+  border:0;background:transparent;border-radius:12px;
+  padding:11px 12px;margin-bottom:2px;cursor:pointer;
+  color:var(--text);font-size:14.5px;font-weight:500;text-align:start
+}
+.nav-item i{font-style:normal;font-size:19px;line-height:1;flex:none}
+.nav-item .count{
+  margin-inline-start:auto;font-size:11.5px;color:var(--muted);
+  background:var(--card-2);border-radius:999px;padding:2px 8px
+}
+.nav-item:hover{background:var(--card-2)}
+.nav-item.active{background:var(--brand-soft);color:var(--brand-ink)}
+@media (prefers-color-scheme: dark){.nav-item.active{color:var(--brand)}}
+.nav-item.active .count{background:transparent}
+.nav-item:focus-visible{outline:2px solid var(--brand);outline-offset:-2px}
+.scrim{position:fixed;inset:0;z-index:60;background:rgba(15,23,42,.5)}
 
 /* ---- Layout ---- */
 .views{max-width:900px;margin:0 auto;padding:14px 12px 24px}
@@ -242,7 +272,7 @@ tfoot td{font-weight:700;border-bottom:0}
 
 /* ---- Toast ---- */
 .toast{
-  position:fixed;z-index:100;bottom:calc(86px + env(safe-area-inset-bottom));inset-inline:0;margin:0 auto;
+  position:fixed;z-index:100;bottom:calc(26px + env(safe-area-inset-bottom));inset-inline:0;margin:0 auto;
   width:max-content;max-width:88%;background:var(--text);color:var(--bg);
   padding:10px 16px;border-radius:99px;font-size:13.5px;box-shadow:var(--shadow)
 }
@@ -253,20 +283,26 @@ tfoot td{font-weight:700;border-bottom:0}
 <body>
 
 <header class="topbar">
+  <button class="icon-btn" id="btnMenu" type="button" aria-label="פתיחת התפריט"
+          aria-expanded="false" aria-controls="drawer">☰</button>
   <div class="brand">
     <span class="brand-icon">🏡</span>
-    <span class="brand-text">
-      <strong>המעבר לעפולה</strong>
-      <small id="brandAddr">העבודה 28</small>
-    </span>
+    <strong>ניהול מעבר דירה</strong>
   </div>
-  <div class="topbar-actions">
-    <button class="chip" id="syncBadge" type="button" title="מצב סנכרון">● מקומי</button>
-    <button class="icon-btn" id="btnSettings" type="button" title="הגדרות" aria-label="הגדרות">⚙️</button>
-  </div>
+  <span class="spacer"></span>
+  <button class="chip" id="syncBadge" type="button" title="מצב סנכרון">● מקומי</button>
+  <button class="icon-btn" id="btnSettings" type="button" title="הגדרות" aria-label="הגדרות">⚙️</button>
 </header>
 
-<nav class="tabs" id="tabs" aria-label="ניווט ראשי"></nav>
+<div class="searchbar">
+  <span class="search-ico" aria-hidden="true">🔍</span>
+  <input id="globalSearch" type="search" autocomplete="off"
+         placeholder="חיפוש משימות, קניות, ארגזים, אנשי קשר…" aria-label="חיפוש">
+  <button class="x hidden" id="searchClear" type="button" aria-label="ניקוי החיפוש">✕</button>
+</div>
+
+<nav class="drawer" id="drawer" aria-label="ניווט ראשי" aria-hidden="true"></nav>
+<div class="scrim hidden" id="scrim"></div>
 
 <main id="views" class="views"></main>
 
@@ -276,17 +312,18 @@ tfoot td{font-weight:700;border-bottom:0}
 <script>
 /* ===== נתוני ברירת מחדל – רשימות מוכנות לעברית =====
    מותאם למעבר לדירה בשכירות + הקמת בית ראשון (קונים כמעט הכול מחדש).
+   התוכן כללי ומתאים לכל מעבר – הכתובות נקבעות במסך ההגדרות.
    כל התוכן כאן ניתן לעריכה מתוך האפליקציה. */
 
 var TABS = [
   { id: 'dash',     icon: '🏠', label: 'סקירה' },
   { id: 'tasks',    icon: '✅', label: 'משימות' },
-  { id: 'shopping', icon: '🛒', label: 'קניות' },
+  { id: 'shopping', icon: '🛒', label: 'קניות', fullLabel: 'קניות לדירה' },
   { id: 'boxes',    icon: '📦', label: 'ארגזים' },
   { id: 'budget',   icon: '💰', label: 'תקציב' },
   { id: 'services', icon: '🔌', label: 'שירותים' },
-  { id: 'docs',     icon: '📄', label: 'מסמכים' },
-  { id: 'contacts', icon: '📇', label: 'קשר' }
+  { id: 'docs',     icon: '📄', label: 'מסמכים', fullLabel: 'מסמכים וצילומים' },
+  { id: 'contacts', icon: '📇', label: 'קשר', fullLabel: 'אנשי קשר' }
 ];
 
 var PHASES = [
@@ -339,9 +376,9 @@ var SEED_TASKS = [
   ['p60','להכין המחאות דחויות לשנה (שכר דירה + ועד בית)'],
   ['p60','לברר מול המשכיר מה כלול בדירה: מזגנים, תנור, מקרר, ארונות, וילונות'],
   ['p60','לברר מי אחראי על תיקונים – דוד, מזגן, נזילות, מכשירים'],
-  ['p60','לתאם את שעת קבלת המפתח בהעבודה 28'],
+  ['p60','לתאם את שעת קבלת המפתח בדירה החדשה'],
   ['p60','להודיע בכתב לבעל הדירה הנוכחי על עזיבה, לפי סעיף החוזה'],
-  ['p60','למדוד את כל החדרים בעפולה – לפני שמזמינים רהיטים'],
+  ['p60','למדוד את כל החדרים בדירה החדשה – לפני שמזמינים רהיטים'],
   ['p60','למדוד רוחב דלת כניסה, מדרגות ומעלית – שהרהיטים ייכנסו'],
   ['p60','לשרטט תוכנית ריהוט לכל חדר לפי המדידות'],
   ['p60','לבנות רשימת קניות ולתעדף מה חייבים כבר ביום הראשון'],
@@ -366,10 +403,10 @@ var SEED_TASKS = [
   ['p14','לפתוח חשבון חשמל על שם השוכר בכתובת החדשה'],
   ['p14','לסגור חשבון חשמל בכתובת הישנה ולתאם קריאת מונה'],
   ['p14','לתאם קריאת מונה מים מול תאגיד המים'],
-  ['p14','לפתוח תיק ארנונה בעיריית עפולה – צריך חוזה + תעודת זהות'],
+  ['p14','לפתוח תיק ארנונה בעירייה החדשה – צריך חוזה + תעודת זהות'],
   ['p14','להזמין שירות העברת דואר בדואר ישראל'],
   ['p14','לעדכן כתובת במשרד הפנים ולהדפיס ספח מעודכן'],
-  ['p14','לעדכן כתובת בקופת חולים ולבחור מרפאה בעפולה'],
+  ['p14','לעדכן כתובת בקופת חולים ולבחור מרפאה קרובה'],
   ['p14','לוודא שכל האספקות והתקנות מתוזמנות אחרי קבלת המפתח'],
   ['p14','לארוז ולסמן ארגזים לפי חדר יעד'],
 
@@ -388,7 +425,7 @@ var SEED_TASKS = [
   ['pday','לצלם את מוני החשמל והמים בדירה הישנה ולתעד בלשונית מסמכים'],
   ['pday','לעבור על כל הארונות, המחסן והמרפסת לפני שיוצאים'],
   ['pday','לנקות את הדירה הישנה, להחזיר מפתחות ולקבל אישור בכתב'],
-  ['pday','לצלם את מוני החשמל והמים בהעבודה 28 ולתעד'],
+  ['pday','לצלם את מוני החשמל והמים בדירה החדשה ולתעד'],
   ['pday','לצלם כל חדר בדירה החדשה לפני שמכניסים משהו – פרוטוקול מסירה'],
   ['pday','לרשום כל ליקוי: סדקים, נזילות, תריסים, מזגן, ריצוף'],
   ['pday','לוודא שכל המפתחות עובדים ולהחליף צילינדר'],
@@ -404,7 +441,7 @@ var SEED_TASKS = [
   ['post','לתלות וילונות, מדפים ומראות'],
   ['post','לעדכן כתובת באתרי קניות ובמנויים'],
   ['post','להכיר את ועד הבית ולברר גובה תשלום ואופן גבייה'],
-  ['post','לאתר בעפולה: סופר, רופא משפחה, בית מרקחת'],
+  ['post','לאתר באזור החדש: סופר, רופא משפחה, בית מרקחת'],
   ['post','לוודא שכל החשבונות בכתובת הישנה נסגרו והתקבל חשבון סופי'],
   ['post','לוודא שהפיקדון והביטחונות מהדירה הישנה הוחזרו'],
   ['post','להחזיר או למחזר את הארגזים']
@@ -414,13 +451,13 @@ var SEED_TASKS = [
 var SEED_SERVICES = [
   { name:'חשמל',              provider:'חברת החשמל',    phone:'103',   notes:'לקרוא מונה ביום המעבר, לסגור חשבון בישן ולפתוח חשבון חדש על שם השוכר.' },
   { name:'מים',               provider:'תאגיד המים',    phone:'',      notes:'המספר מופיע על חשבון המים. לתאם קריאת מונה בשתי הכתובות.' },
-  { name:'ארנונה',            provider:'עיריית עפולה',  phone:'106',   notes:'פתיחת תיק על שם השוכר – צריך חוזה שכירות + תעודת זהות. לסגור בעירייה הישנה.' },
+  { name:'ארנונה',            provider:'',              phone:'106',   notes:'מוקד עירוני 106. פתיחת תיק על שם השוכר – צריך חוזה + תעודת זהות. לסגור בעירייה הישנה.' },
   { name:'גז',                provider:'',              phone:'',      notes:'לבדוק אם גז מרכזי או בלונים; ניתוק בישן וחיבור בחדש.' },
   { name:'אינטרנט',           provider:'',              phone:'',      notes:'להזמין 14 יום מראש – לרוב נדרש טכנאי. לבדוק תשתית בבניין.' },
   { name:'טלוויזיה',          provider:'',              phone:'',      notes:'העברה או ניתוק; להחזיר ממיר אם צריך.' },
   { name:'העברת דואר',        provider:'דואר ישראל',    phone:'171',   notes:'שירות בתשלום להעברת דואר לכתובת החדשה.' },
   { name:'שינוי כתובת בת"ז',  provider:'משרד הפנים',    phone:'*3450', notes:'אפשר לבצע אונליין; מקבלים ספח מעודכן.' },
-  { name:'קופת חולים',        provider:'',              phone:'',      notes:'לעדכן כתובת ולבחור מרפאה בעפולה.' },
+  { name:'קופת חולים',        provider:'',              phone:'',      notes:'לעדכן כתובת ולבחור מרפאה קרובה לבית החדש.' },
   { name:'ביטוח תכולה',       provider:'',              phone:'',      notes:'להתחיל מיום קבלת המפתח. שווה לבטח גם את הריהוט החדש.' },
   { name:'בנק וכרטיסי אשראי', provider:'',              phone:'',      notes:'עדכון כתובת למשלוח דואר וכרטיסים.' },
   { name:'ועד בית',           provider:'',              phone:'',      notes:'לברר גובה תשלום, אופן גבייה ואיש קשר.' }
@@ -527,10 +564,10 @@ var SEED_SHOPPING = [
 var SEED_DOCS = [
   ['meter','מונה חשמל – דירה ישנה'],
   ['meter','מונה מים – דירה ישנה'],
-  ['meter','מונה חשמל – העבודה 28'],
-  ['meter','מונה מים – העבודה 28'],
+  ['meter','מונה חשמל – דירה חדשה'],
+  ['meter','מונה מים – דירה חדשה'],
   ['meter','מונה גז'],
-  ['contract','חוזה שכירות – העבודה 28'],
+  ['contract','חוזה שכירות – דירה חדשה'],
   ['protocol','פרוטוקול מסירה + צילומי כל החדרים'],
   ['receipt','קבלה על פיקדון / ביטחונות'],
   ['other','רשימת ליקויים שנשלחה למשכיר']
@@ -546,7 +583,7 @@ var SEED_CONTACTS = [
 
 </script>
 <script>
-/* ===== המעבר לעפולה · לוגיקת האפליקציה ===== */
+/* ===== ניהול מעבר דירה · לוגיקת האפליקציה ===== */
 (function () {
   'use strict';
 
@@ -609,7 +646,7 @@ var SEED_CONTACTS = [
       settings: {
         moveDate: '',
         fromAddr: '',
-        toAddr: 'העבודה 28, עפולה',
+        toAddr: '',
         movers: ''
       },
       tasks: SEED_TASKS.map(function (t) { return { id: uid(), phase: t[0], title: t[1], done: false, due: '' }; }),
@@ -829,6 +866,29 @@ var SEED_CONTACTS = [
   }
   function pct(a, b) { return b ? Math.round((a / b) * 100) : 0; }
 
+  /* ---------- חיפוש כללי ---------- */
+  function query() {
+    var el = $('#globalSearch');
+    return el ? el.value.trim().toLowerCase() : '';
+  }
+  // מחזיר true אם אין חיפוש פעיל, או אם אחד השדות מכיל את מילת החיפוש
+  function hit() {
+    var q = query();
+    if (!q) return true;
+    for (var i = 0; i < arguments.length; i++) {
+      var v = arguments[i];
+      if (v != null && String(v).toLowerCase().indexOf(q) !== -1) return true;
+    }
+    return false;
+  }
+  function searchNote(shown, total, noun) {
+    if (!query()) return '';
+    return '<div class="search-note"><span>🔍 ' +
+      (shown ? shown + ' מתוך ' + total : 'אין תוצאות מתוך ' + total) + ' ' + esc(noun) + '</span>' +
+      '<span class="spacer"></span>' +
+      '<button class="btn sm" data-act="clear-search">ניקוי החיפוש</button></div>';
+  }
+
   /* ---------- רכיבי HTML ---------- */
   function statCard(k, v, cur, tot) {
     return '<div class="stat"><div class="k">' + esc(k) + '</div><div class="v">' + v + '</div>' +
@@ -845,7 +905,47 @@ var SEED_CONTACTS = [
   }
 
   /* ---------- מסכים ---------- */
+  // כשמחפשים, מסך הסקירה הופך לתוצאות חיפוש מכל האפליקציה
+  function viewGlobalSearch() {
+    var groups = [
+      { id: 'tasks', icon: '✅', label: 'משימות', items: state.tasks.filter(function (t) { return hit(t.title); })
+          .map(function (t) { var p = PHASES.filter(function (x) { return x.id === t.phase; })[0];
+            return { t: t.title, s: (p ? p.label : '') + (t.done ? ' · בוצע' : '') }; }) },
+      { id: 'shopping', icon: '🛒', label: 'קניות', items: state.shopping.filter(function (x) { return hit(x.name, x.store, x.area); })
+          .map(function (x) { return { t: x.name, s: x.area + (x.bought ? ' · נקנה' : '') }; }) },
+      { id: 'boxes', icon: '📦', label: 'ארגזים', items: state.boxes.filter(function (x) { return hit(x.contents, x.num, x.from, x.to); })
+          .map(function (x) { return { t: '#' + x.num + ' ' + (x.contents || ''), s: x.from + ' ← ' + x.to }; }) },
+      { id: 'budget', icon: '💰', label: 'תקציב', items: state.budget.filter(function (x) { return hit(x.cat, x.note); })
+          .map(function (x) { return { t: x.cat, s: nis(x.actual || x.planned) }; }) },
+      { id: 'services', icon: '🔌', label: 'שירותים', items: state.services.filter(function (x) { return hit(x.name, x.provider, x.notes, x.account, x.phone); })
+          .map(function (x) { return { t: x.name, s: x.provider || '' }; }) },
+      { id: 'docs', icon: '📄', label: 'מסמכים', items: state.docs.filter(function (x) { return hit(x.title, x.value, x.notes, x.link); })
+          .map(function (x) { return { t: x.title, s: x.value || '' }; }) },
+      { id: 'contacts', icon: '📇', label: 'אנשי קשר', items: state.contacts.filter(function (x) { return hit(x.name, x.role, x.phone, x.notes); })
+          .map(function (x) { return { t: x.name || x.role, s: x.phone || x.role || '' }; }) }
+    ].filter(function (g) { return g.items.length; });
+
+    var total = groups.reduce(function (n, g) { return n + g.items.length; }, 0);
+    var h = '<div class="card"><h2>תוצאות חיפוש <span class="sub">' + total + ' תוצאות עבור “' + esc(query()) + '”</span></h2>' +
+      '<div class="row"><button class="btn sm" data-act="clear-search">ניקוי החיפוש</button></div></div>';
+
+    if (!total) return h + '<div class="card"><div class="empty">לא נמצא כלום. אפשר לנסות מילה אחרת.</div></div>';
+
+    groups.forEach(function (g) {
+      h += '<div class="card"><h2>' + g.icon + ' ' + esc(g.label) +
+        ' <span class="sub">' + g.items.length + '</span></h2>' +
+        g.items.slice(0, 12).map(function (it) {
+          return '<div class="task"><div class="t"><div style="font-weight:500">' + esc(it.t) + '</div>' +
+            (it.s ? '<div class="small muted">' + esc(it.s) + '</div>' : '') + '</div></div>';
+        }).join('') +
+        (g.items.length > 12 ? '<div class="small muted" style="margin-top:6px">ועוד ' + (g.items.length - 12) + '…</div>' : '') +
+        '<div class="row" style="margin-top:10px"><button class="btn sm" data-tab="' + g.id + '">מעבר ל' + esc(g.label) + '</button></div></div>';
+    });
+    return h;
+  }
+
   function viewDash() {
+    if (query()) return viewGlobalSearch();
     var s = state.settings;
     var t = taskStats(), b = boxStats(), sv = serviceStats(), bg = budgetStats(), sh = shopStats();
     var h = '';
@@ -863,7 +963,7 @@ var SEED_CONTACTS = [
     }
 
     h += '<div class="card hero">' + cd +
-      '<div class="hero-addr">📍 ' + esc(s.toAddr || 'העבודה 28, עפולה') +
+      '<div class="hero-addr">📍 ' + esc(s.toAddr || 'עוד לא הוגדרה כתובת') +
       (s.fromAddr ? '<br>↩️ מ־' + esc(s.fromAddr) : '') + '</div></div>';
 
     h += '<div class="grid g4">' +
@@ -914,13 +1014,35 @@ var SEED_CONTACTS = [
       '<select id="ntPhase" style="flex:1 1 130px">' + opts(PHASES, 'p30', 'id', 'label') + '</select>' +
       '<button class="btn primary" data-act="add-task">הוסף</button></div></div>';
 
-    PHASES.forEach(function (p) {
-      var list = state.tasks.filter(function (t) { return t.phase === p.id; });
-      var done = list.filter(function (t) { return t.done; }).length;
+    // סינון לפי שלב + לפי מה שכבר בוצע
+    h += '<div class="card"><div class="row">' +
+      '<label class="f">שלב<select id="taskPhase">' +
+      '<option value="">כל השלבים</option>' + opts(PHASES, viewTasks._ph || '', 'id', 'label') +
+      '</select></label>' +
+      '<label class="f">מצב<select id="taskDone">' +
+      '<option value="">הכול</option>' +
+      '<option value="open"' + (viewTasks._st === 'open' ? ' selected' : '') + '>רק שלא בוצעו</option>' +
+      '<option value="done"' + (viewTasks._st === 'done' ? ' selected' : '') + '>רק שבוצעו</option>' +
+      '</select></label></div></div>';
+
+    var phases = PHASES.filter(function (p) { return !viewTasks._ph || p.id === viewTasks._ph; });
+    var shown = 0, total = state.tasks.length;
+
+    phases.forEach(function (p) {
+      var all = state.tasks.filter(function (t) { return t.phase === p.id; });
+      var list = all.filter(function (t) {
+        if (viewTasks._st === 'open' && t.done) return false;
+        if (viewTasks._st === 'done' && !t.done) return false;
+        return hit(t.title);
+      });
+      shown += list.length;
+      // בסינון פעיל אין טעם להציג שלבים ריקים
+      if (!list.length && (query() || viewTasks._st)) return;
+      var done = all.filter(function (t) { return t.done; }).length;
       h += '<div class="card phase"><div class="phase-head"><h3>' + esc(p.label) + '</h3>' +
-        '<span class="cnt">' + done + '/' + list.length + ' · ' + esc(p.hint) + '</span>' +
+        '<span class="cnt">' + done + '/' + all.length + ' · ' + esc(p.hint) + '</span>' +
         '<span class="spacer"></span></div>' +
-        '<div class="bar" style="margin-bottom:8px"><i style="width:' + pct(done, list.length) + '%"></i></div>';
+        '<div class="bar" style="margin-bottom:8px"><i style="width:' + pct(done, all.length) + '%"></i></div>';
       if (!list.length) h += '<div class="empty">אין משימות בשלב הזה</div>';
       list.forEach(function (t) {
         var late = !t.done && t.due && t.due < todayISO();
@@ -934,7 +1056,9 @@ var SEED_CONTACTS = [
       });
       h += '</div>';
     });
-    return h;
+
+    if (!shown) h += '<div class="card"><div class="empty">לא נמצאו משימות מתאימות</div></div>';
+    return searchNote(shown, total, 'משימות') + h;
   }
 
   function viewBoxes() {
@@ -948,17 +1072,14 @@ var SEED_CONTACTS = [
 
     h += '<div class="card"><h2>ארגזים <span class="sub">' + b.packed + '/' + b.total + ' ארוזים</span></h2>' +
       '<div class="row" style="margin-bottom:10px">' +
-      '<input id="boxSearch" placeholder="🔍 חיפוש לפי תוכן או מספר" style="flex:2 1 160px" value="' + esc(viewBoxes._q || '') + '">' +
       '<select id="boxFilter" style="flex:1 1 130px"><option value="">כל הסטטוסים</option>' +
       opts(BOX_STATUS, viewBoxes._f || '', 'id', 'label') + '</select>' +
       '<button class="btn sm" data-act="print-labels">🖨️ תוויות</button></div>';
 
-    var q = (viewBoxes._q || '').trim();
     var f = viewBoxes._f || '';
     var list = state.boxes.filter(function (x) {
       if (f && x.status !== f) return false;
-      if (q && String(x.num).indexOf(q) < 0 && (x.contents || '').indexOf(q) < 0) return false;
-      return true;
+      return hit(x.contents, x.num, x.from, x.to);
     });
 
     if (!state.boxes.length) h += '<div class="empty">עדיין אין ארגזים. מוסיפים ארגז ומדביקים עליו את המספר.</div>';
@@ -981,7 +1102,7 @@ var SEED_CONTACTS = [
         '</div></div>';
     }).join('') + '</div>';
     h += '</div>';
-    return h;
+    return searchNote(list.length, b.total, 'ארגזים') + h;
   }
 
   function viewShopping() {
@@ -1005,14 +1126,17 @@ var SEED_CONTACTS = [
       '<label class="row small" style="gap:6px;flex:none"><input type="checkbox" id="shopHide"' +
       (viewShopping._hide ? ' checked' : '') + '> להסתיר מה שנקנה</label></div></div>';
 
+    var shopShown = 0;
     SHOP_AREAS.forEach(function (area) {
       var all = state.shopping.filter(function (s) { return s.area === area; });
       if (!all.length) return;
       var list = all.filter(function (s) {
         if (viewShopping._p && s.prio !== viewShopping._p) return false;
         if (viewShopping._hide && s.bought) return false;
-        return true;
+        return hit(s.name, s.store, s.area);
       });
+      shopShown += list.length;
+      if (!list.length && query()) return;
       var got = all.filter(function (s) { return s.bought; }).length;
       h += '<div class="card phase"><div class="phase-head"><h3>' + esc(area) + '</h3>' +
         '<span class="cnt">' + got + '/' + all.length + '</span><span class="spacer"></span></div>' +
@@ -1035,7 +1159,8 @@ var SEED_CONTACTS = [
       });
       h += '</div>';
     });
-    return h;
+    if (!shopShown) h += '<div class="card"><div class="empty">לא נמצאו פריטים מתאימים</div></div>';
+    return searchNote(shopShown, sh.total, 'פריטים') + h;
   }
 
   function viewDocs() {
@@ -1043,7 +1168,8 @@ var SEED_CONTACTS = [
       '<div class="small muted">מצלמים בטלפון → התמונה נשמרת בגוגל דרייב או בגוגל תמונות → מדביקים כאן את הקישור. ' +
       'כך כל המספרים והצילומים החשובים במקום אחד, בכל המכשירים.</div></div>';
 
-    state.docs.forEach(function (d) {
+    var docList = state.docs.filter(function (d) { return hit(d.title, d.value, d.notes, d.link); });
+    docList.forEach(function (d) {
       var tp = DOC_TYPES.filter(function (x) { return x.id === d.type; })[0];
       h += '<div class="card"><h2>' + esc(d.title || 'ללא שם') +
         '<span class="tag">' + esc(tp ? tp.label : '') + '</span></h2>' +
@@ -1062,8 +1188,9 @@ var SEED_CONTACTS = [
         '<span class="spacer"></span>' +
         '<button class="x" data-act="del" data-coll="docs" data-id="' + d.id + '">✕ מחיקה</button></div></div>';
     });
+    if (!docList.length) h += '<div class="card"><div class="empty">לא נמצאו רשומות מתאימות</div></div>';
     h += '<div class="card"><button class="btn" data-act="add-doc">➕ רשומה חדשה</button></div>';
-    return h;
+    return searchNote(docList.length, state.docs.length, 'רשומות') + h;
   }
 
   function viewBudget() {
@@ -1081,7 +1208,8 @@ var SEED_CONTACTS = [
     h += '<div class="card"><h2>הוצאות</h2><div class="tablewrap"><table><thead><tr>' +
       '<th style="width:32%">סעיף</th><th>מתוכנן</th><th>בפועל</th><th>שולם</th><th>הערה</th><th></th>' +
       '</tr></thead><tbody>';
-    state.budget.forEach(function (r) {
+    var bRows = state.budget.filter(function (r) { return hit(r.cat, r.note); });
+    bRows.forEach(function (r) {
       h += '<tr>' +
         '<td><input value="' + esc(r.cat) + '" ' + bind('budget', r.id, 'cat') + '></td>' +
         '<td><input type="number" inputmode="numeric" min="0" value="' + (r.planned || '') + '" ' + bind('budget', r.id, 'planned') + ' style="min-width:80px"></td>' +
@@ -1092,7 +1220,7 @@ var SEED_CONTACTS = [
     });
     h += '</tbody><tfoot><tr><td>סה"כ</td><td>' + nis(bg.planned) + '</td><td>' + nis(bg.actual) + '</td><td colspan="3"></td></tr></tfoot></table></div>' +
       '<div class="row" style="margin-top:10px"><button class="btn" data-act="add-budget">➕ סעיף חדש</button></div></div>';
-    return h;
+    return searchNote(bRows.length, state.budget.length, 'סעיפים') + h;
   }
 
   function viewServices() {
@@ -1101,7 +1229,8 @@ var SEED_CONTACTS = [
       '<div class="bar"><i style="width:' + pct(sv.done, sv.total) + '%"></i></div>' +
       '<div class="small muted" style="margin-top:8px">מספרי הטלפון הם ברירת מחדל לנוחות – כדאי לאמת מול הספק שלכם.</div></div>';
 
-    state.services.forEach(function (s) {
+    var svcList = state.services.filter(function (s) { return hit(s.name, s.provider, s.notes, s.account, s.phone); });
+    svcList.forEach(function (s) {
       var stl = SERVICE_STATUS.filter(function (x) { return x.id === s.status; })[0];
       h += '<div class="card"><h2>' + esc(s.name) +
         '<span class="tag ' + (s.status === 'done' ? 'ok' : s.status === 'wip' ? 'warn' : '') + '">' + esc(stl ? stl.label : '') + '</span></h2>' +
@@ -1117,8 +1246,9 @@ var SEED_CONTACTS = [
         '<span class="spacer"></span>' +
         '<button class="x" data-act="del" data-coll="services" data-id="' + s.id + '">✕ מחיקה</button></div></div>';
     });
+    if (!svcList.length) h += '<div class="card"><div class="empty">לא נמצאו שירותים מתאימים</div></div>';
     h += '<div class="card"><button class="btn" data-act="add-service">➕ שירות נוסף</button></div>';
-    return h;
+    return searchNote(svcList.length, sv.total, 'שירותים') + h;
   }
 
   function viewContacts() {
@@ -1128,8 +1258,10 @@ var SEED_CONTACTS = [
       '<input id="ncPhone" placeholder="טלפון" inputmode="tel" style="flex:1 1 120px">' +
       '<button class="btn primary" data-act="add-contact">הוסף</button></div></div>';
 
+    var conList = state.contacts.filter(function (c) { return hit(c.name, c.role, c.phone, c.notes); });
     if (!state.contacts.length) h += '<div class="card"><div class="empty">אין עדיין אנשי קשר</div></div>';
-    state.contacts.forEach(function (c) {
+    else if (!conList.length) h += '<div class="card"><div class="empty">לא נמצאו אנשי קשר מתאימים</div></div>';
+    conList.forEach(function (c) {
       var tel = String(c.phone || '').replace(/[^\d+]/g, '');
       var wa = tel.replace(/^0/, '972').replace(/\+/, '');
       h += '<div class="card"><div class="row">' +
@@ -1143,7 +1275,7 @@ var SEED_CONTACTS = [
         '<span class="spacer"></span>' +
         '<button class="x" data-act="del" data-coll="contacts" data-id="' + c.id + '">✕ מחיקה</button></div></div>';
     });
-    return h;
+    return searchNote(conList.length, state.contacts.length, 'אנשי קשר') + h;
   }
 
   /* ---------- ניתוב ורינדור ---------- */
@@ -1152,21 +1284,51 @@ var SEED_CONTACTS = [
     budget: viewBudget, services: viewServices, docs: viewDocs, contacts: viewContacts
   };
 
-  function renderTabs() {
-    $('#tabs').innerHTML = TABS.map(function (t) {
-      return '<button class="tab' + (t.id === view ? ' active' : '') + '" data-tab="' + t.id + '"><i>' + t.icon + '</i>' + esc(t.label) + '</button>';
-    }).join('');
+  /* ---------- תפריט צד ---------- */
+  function sectionCount(id) {
+    if (id === 'dash') return '';
+    var map = { tasks: 'tasks', shopping: 'shopping', boxes: 'boxes',
+                budget: 'budget', services: 'services', docs: 'docs', contacts: 'contacts' };
+    var arr = state[map[id]];
+    if (!arr) return '';
+    if (id === 'tasks') return arr.filter(function (t) { return !t.done; }).length || '';
+    if (id === 'shopping') return arr.filter(function (s) { return !s.bought; }).length || '';
+    if (id === 'services') return arr.filter(function (s) { return s.status !== 'done'; }).length || '';
+    return arr.length || '';
+  }
+
+  function renderDrawer() {
+    $('#drawer').innerHTML =
+      '<div class="drawer-head"><span style="font-size:20px">🏡</span><strong>ניהול מעבר דירה</strong></div>' +
+      TABS.map(function (t) {
+        var c = sectionCount(t.id);
+        return '<button class="nav-item' + (t.id === view ? ' active' : '') + '" data-tab="' + t.id + '">' +
+          '<i>' + t.icon + '</i>' + esc(t.fullLabel || t.label) +
+          (c ? '<span class="count">' + c + '</span>' : '') + '</button>';
+      }).join('');
+  }
+
+  // מצב המגירה נקרא תמיד מה-DOM עצמו, כדי שלא ייווצר פער בין משתנה למציאות
+  function drawerIsOpen() { return $('#drawer').classList.contains('open'); }
+  function setDrawer(open) {
+    var d = $('#drawer'), s = $('#scrim'), b = $('#btnMenu');
+    d.classList.toggle('open', open);
+    d.setAttribute('aria-hidden', open ? 'false' : 'true');
+    b.setAttribute('aria-expanded', open ? 'true' : 'false');
+    b.setAttribute('aria-label', open ? 'סגירת התפריט' : 'פתיחת התפריט');
+    s.classList.toggle('hidden', !open);
+    if (open) { var f = d.querySelector('.nav-item'); if (f) f.focus(); }
   }
 
   function render() {
-    renderTabs();
+    renderDrawer();
     var warn = safeLS.ok ? '' :
       '<div class="card" style="border-color:var(--danger);background:var(--danger-soft)">' +
       '<b>⚠️ הדפדפן הזה חוסם שמירה מקומית</b>' +
       '<div class="small" style="margin-top:4px">מה שתמלאו כאן ייעלם ברענון הדף. ' +
       'זה קורה בדרך כלל בגלישה פרטית או כשחסימת עוגיות מופעלת – כדאי לפתוח את הדף בחלון רגיל.</div></div>';
     $('#views').innerHTML = warn + (VIEWS[view] || viewDash)();
-    $('#brandAddr').textContent = state.settings.toAddr || 'העבודה 28, עפולה';
+    $('#searchClear').classList.toggle('hidden', !query());
     window.scrollTo({ top: 0 });
   }
 
@@ -1180,7 +1342,7 @@ var SEED_CONTACTS = [
 
   document.addEventListener('click', function (e) {
     var tab = e.target.closest('[data-tab]');
-    if (tab) { view = tab.dataset.tab; render(); return; }
+    if (tab) { view = tab.dataset.tab; setDrawer(false); render(); return; }
 
     var el = e.target.closest('[data-act]');
     if (!el) return;
@@ -1242,6 +1404,38 @@ var SEED_CONTACTS = [
     }
     else if (act === 'print-labels') printLabels();
     else if (act === 'settings') openSettings();
+    else if (act === 'clear-search') {
+      $('#globalSearch').value = '';
+      render();
+      $('#globalSearch').focus();
+    }
+  });
+
+  /* ---------- תפריט צד וחיפוש ---------- */
+  $('#btnMenu').addEventListener('click', function () { setDrawer(!drawerIsOpen()); });
+  $('#scrim').addEventListener('click', function () { setDrawer(false); });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') {
+      if (drawerIsOpen()) { setDrawer(false); $('#btnMenu').focus(); return; }
+      if (!$('#overlay').classList.contains('hidden')) $('#overlay').classList.add('hidden');
+    }
+  });
+
+  var searchTimer = null;
+  $('#globalSearch').addEventListener('input', function () {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(function () {
+      var el = $('#globalSearch'), pos = el.selectionStart;
+      render();
+      // ‎render‎ בונה מחדש את המסך אך לא את שורת החיפוש, ולכן הפוקוס נשמר
+      el.focus();
+      try { el.setSelectionRange(pos, pos); } catch (err) {}
+    }, 200);
+  });
+  $('#searchClear').addEventListener('click', function () {
+    $('#globalSearch').value = '';
+    render();
+    $('#globalSearch').focus();
   });
 
   // עריכת שדות: input (טקסט) בלי רינדור מחדש, change (select/date) עם רינדור
@@ -1255,10 +1449,7 @@ var SEED_CONTACTS = [
   }
   document.addEventListener('input', function (e) {
     var el = e.target.closest('[data-act="edit"]');
-    if (!el) {
-      if (e.target.id === 'boxSearch') { viewBoxes._q = e.target.value; softRenderBoxes(); }
-      return;
-    }
+    if (!el) return;
     if (el.tagName === 'SELECT' || el.type === 'date') return;
     applyEdit(el);
     if (el.dataset.coll === 'budget') refreshBudgetTotals();
@@ -1275,20 +1466,10 @@ var SEED_CONTACTS = [
     }
     if (e.target.id === 'boxFilter') { viewBoxes._f = e.target.value; render(); return; }
     if (e.target.id === 'shopPrio') { viewShopping._p = e.target.value; render(); return; }
-    if (e.target.id === 'shopHide') { viewShopping._hide = e.target.checked; render(); }
+    if (e.target.id === 'shopHide') { viewShopping._hide = e.target.checked; render(); return; }
+    if (e.target.id === 'taskPhase') { viewTasks._ph = e.target.value; render(); return; }
+    if (e.target.id === 'taskDone') { viewTasks._st = e.target.value; render(); }
   });
-
-  function softRenderBoxes() {
-    // סינון מיידי בלי לאבד פוקוס בשדה החיפוש
-    clearTimeout(softRenderBoxes._t);
-    softRenderBoxes._t = setTimeout(function () {
-      var q = viewBoxes._q, f = viewBoxes._f;
-      render();
-      var s = $('#boxSearch');
-      if (s) { s.focus(); s.setSelectionRange(s.value.length, s.value.length); }
-      viewBoxes._q = q; viewBoxes._f = f;
-    }, 250);
-  }
 
   function refreshShopTotals() {
     if (view !== 'shopping') return;
@@ -1321,7 +1502,7 @@ var SEED_CONTACTS = [
           '<div class="r">→ ' + esc(b.to || '') + '</div>' +
           '<div class="c">' + esc(b.contents || '') + '</div></div>' +
           (b.fragile ? '<div class="f">⚠️ שביר – בזהירות</div>' : '<div></div>') +
-          '<div class="a">' + esc(state.settings.toAddr || 'העבודה 28, עפולה') + '</div></div>';
+          '<div class="a">' + esc(state.settings.toAddr || '') + '</div></div>';
       }).join('') + '</div></body></html>';
     var w = window.open('', '_blank');
     if (!w) { toast('החלון נחסם – יש לאשר חלונות קופצים'); return; }
