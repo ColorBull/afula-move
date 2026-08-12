@@ -73,7 +73,15 @@ a{color:var(--brand)}
   background:var(--card);border-bottom:1px solid var(--line);
 }
 .brand{display:flex;align-items:center;gap:10px;min-width:0}
-.brand-icon{font-size:22px}
+/* שם האפליקציה נשאר תמיד בשורה אחת; במסך צר הוא פשוט קטן יותר */
+.brand strong{font-size:16px;white-space:nowrap}
+.brand-icon{font-size:22px;flex:none}
+@media(max-width:480px){
+  .brand strong{font-size:13.5px}
+  .brand-icon{font-size:18px}
+  .brand{gap:7px}
+}
+@media(max-width:359px){.brand strong{font-size:12.5px}}
 .brand-text{display:flex;flex-direction:column;line-height:1.15;min-width:0}
 .brand-text strong{font-size:16px}
 .brand-text small{color:var(--muted);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -183,6 +191,34 @@ a{color:var(--brand)}
 
 /* ---- Stats ---- */
 .stat{background:var(--card-2);border:1px solid var(--line);border-radius:14px;padding:11px}
+/* כרטיס נתון שהוא כפתור ניווט – איפוס סגנון הכפתור כדי שייראה זהה לכרטיס רגיל */
+button.stat{
+  width:100%;display:block;text-align:start;font:inherit;color:inherit;
+  cursor:pointer;transition:border-color .15s,transform .08s
+}
+button.stat:hover{border-color:var(--brand)}
+button.stat:active{transform:scale(.985)}
+button.stat:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
+
+/* ---- הודעות שניתן ללחוץ עליהן ---- */
+button.alert-card{
+  width:100%;display:block;text-align:start;font:inherit;color:inherit;cursor:pointer;
+  border:1px solid var(--warn);background:var(--warn-soft);
+  transition:transform .08s,filter .15s
+}
+button.alert-card.danger{border-color:var(--danger);background:var(--danger-soft)}
+button.alert-card:hover{filter:brightness(1.08)}
+button.alert-card:active{transform:scale(.99)}
+button.alert-card:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
+button.alert-card .small{margin-top:4px;opacity:.85}
+.alert-go{
+  display:inline-block;margin-top:8px;font-size:12.5px;font-weight:600;
+  color:var(--warn);letter-spacing:.2px
+}
+button.alert-card.danger .alert-go{color:var(--danger)}
+@media (prefers-reduced-motion: reduce){
+  button.stat,button.alert-card{transition:none}
+}
 .stat .k{font-size:12px;color:var(--muted)}
 .stat .v{font-size:21px;font-weight:700;margin-top:2px}
 .bar{height:7px;border-radius:99px;background:var(--line);overflow:hidden;margin-top:8px}
@@ -890,9 +926,25 @@ var SEED_CONTACTS = [
   }
 
   /* ---------- רכיבי HTML ---------- */
-  function statCard(k, v, cur, tot) {
-    return '<div class="stat"><div class="k">' + esc(k) + '</div><div class="v">' + v + '</div>' +
-      (tot != null ? '<div class="bar"><i style="width:' + pct(cur, tot) + '%"></i></div>' : '') + '</div>';
+  // כרטיס נתון. אם הועבר tab – הכרטיס הופך לכפתור שמוביל למסך המתאים
+  function statCard(k, v, cur, tot, tab) {
+    var inner = '<div class="k">' + esc(k) + '</div><div class="v">' + v + '</div>' +
+      (tot != null ? '<div class="bar"><i style="width:' + pct(cur, tot) + '%"></i></div>' : '');
+    if (!tab) return '<div class="stat">' + inner + '</div>';
+    return '<button type="button" class="stat stat-link" data-tab="' + tab + '">' + inner + '</button>';
+  }
+
+  // הודעה שניתן ללחוץ עליה כדי לקפוץ למסך הרלוונטי, כבר עם הסינון המתאים.
+  // filters ממופה לשמות ה-data שמטופלים במאזין הלחיצה (prio, taskphase, boxstatus…)
+  function alertCard(o) {
+    var attrs = ' data-tab="' + o.tab + '"';
+    Object.keys(o.filters || {}).forEach(function (k) {
+      attrs += ' data-' + k + '="' + esc(o.filters[k]) + '"';
+    });
+    return '<button type="button" class="card alert-card ' + (o.tone || 'warn') + '"' + attrs + '>' +
+      '<b>' + o.icon + ' ' + esc(o.title) + '</b>' +
+      (o.sub ? '<div class="small">' + esc(o.sub) + '</div>' : '') +
+      '<span class="alert-go">' + esc(o.cta || 'פתיחה') + ' ←</span></button>';
   }
   function opts(list, sel, valKey, labKey) {
     return list.map(function (o) {
@@ -967,16 +1019,38 @@ var SEED_CONTACTS = [
       (s.fromAddr ? '<br>↩️ מ־' + esc(s.fromAddr) : '') + '</div></div>';
 
     h += '<div class="grid g4">' +
-      statCard('משימות', t.done + '/' + t.total, t.done, t.total) +
-      statCard('קניות לדירה', sh.bought + '/' + sh.total, sh.bought, sh.total) +
-      statCard('שירותים הועברו', sv.done + '/' + sv.total, sv.done, sv.total) +
-      statCard('ארגזים ארוזים', b.packed + '/' + b.total, b.packed, b.total) +
+      statCard('משימות', t.done + '/' + t.total, t.done, t.total, 'tasks') +
+      statCard('קניות לדירה', sh.bought + '/' + sh.total, sh.bought, sh.total, 'shopping') +
+      statCard('שירותים הועברו', sv.done + '/' + sv.total, sv.done, sv.total, 'services') +
+      statCard('ארגזים ארוזים', b.packed + '/' + b.total, b.packed, b.total, 'boxes') +
       '</div>';
 
+    // --- הודעות שדורשות פעולה. כל אחת פותחת את המסך הנכון עם הסינון הנכון ---
     if (sh.mustLeft) {
-      h += '<div class="card" style="border-color:var(--warn);background:var(--warn-soft)">' +
-        '<b>🛒 ' + sh.mustLeft + ' פריטים שחייבים כבר ליום הראשון עדיין לא נקנו</b>' +
-        '<div class="small" style="margin-top:4px">אפשר לראות אותם בלשונית "קניות" בסינון «ליום הראשון».</div></div>';
+      h += alertCard({
+        icon: '🛒', tab: 'shopping', cta: 'לרשימה',
+        title: sh.mustLeft + ' פריטים שחייבים כבר ליום הראשון עדיין לא נקנו',
+        sub: 'פתיחת רשימת הקניות מסוננת לפריטים של היום הראשון שטרם נקנו.',
+        filters: { prio: 'must', shophide: '1' }
+      });
+    }
+
+    var lateTasks = state.tasks.filter(function (x) { return !x.done && x.due && x.due < todayISO(); }).length;
+    if (lateTasks) {
+      h += alertCard({
+        icon: '⏰', tab: 'tasks', tone: 'danger', cta: 'למשימות',
+        title: lateTasks + ' משימות עברו את תאריך היעד',
+        sub: 'פתיחת רשימת המשימות עם כל מה שעדיין לא בוצע.',
+        filters: { taskstate: 'open', taskphase: '' }
+      });
+    }
+
+    if (sv.total - sv.done && s.moveDate && daysBetween(todayISO(), s.moveDate) <= 14) {
+      h += alertCard({
+        icon: '🔌', tab: 'services', cta: 'לשירותים',
+        title: (sv.total - sv.done) + ' שירותים עדיין לא הועברו',
+        sub: 'נשארו פחות משבועיים למעבר – חשמל, מים, ארנונה ואינטרנט דורשים תיאום מראש.'
+      });
     }
 
     // המשימות הקרובות
@@ -999,10 +1073,10 @@ var SEED_CONTACTS = [
     h += '</div>';
 
     h += '<div class="card"><h2>כסף במבט מהיר</h2><div class="grid g2">' +
-      statCard('תקציב מתוכנן', nis(bg.planned)) +
-      statCard('הוצאות המעבר', nis(bg.actual)) +
-      statCard('קניות לדירה', nis(sh.cost)) +
-      statCard('סה"כ יצא עד עכשיו', nis(bg.actual + sh.cost)) +
+      statCard('תקציב מתוכנן', nis(bg.planned), null, null, 'budget') +
+      statCard('הוצאות המעבר', nis(bg.actual), null, null, 'budget') +
+      statCard('קניות לדירה', nis(sh.cost), null, null, 'shopping') +
+      statCard('סה"כ יצא עד עכשיו', nis(bg.actual + sh.cost), null, null, 'budget') +
       '</div><div class="small muted" style="margin-top:8px">"קניות לדירה" מגיע מלשונית הקניות ולא נספר פעמיים בתקציב.</div></div>';
 
     return h;
@@ -1342,7 +1416,19 @@ var SEED_CONTACTS = [
 
   document.addEventListener('click', function (e) {
     var tab = e.target.closest('[data-tab]');
-    if (tab) { view = tab.dataset.tab; setDrawer(false); render(); return; }
+    if (tab) {
+      var d = tab.dataset;
+      // סינונים שמגיעים יחד עם הניווט, כדי שהמסך ייפתח ישר על מה שרלוונטי
+      if (d.prio !== undefined) viewShopping._p = d.prio;
+      if (d.shophide !== undefined) viewShopping._hide = d.shophide === '1';
+      if (d.taskphase !== undefined) viewTasks._ph = d.taskphase;
+      if (d.taskstate !== undefined) viewTasks._st = d.taskstate;
+      if (d.boxstatus !== undefined) viewBoxes._f = d.boxstatus;
+      view = d.tab;
+      setDrawer(false);
+      render();
+      return;
+    }
 
     var el = e.target.closest('[data-act]');
     if (!el) return;
