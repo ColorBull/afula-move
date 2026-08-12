@@ -1,0 +1,2 @@
+# Normalize line endings so the site is byte-identical on every checkout
+* text=auto eol=lf
