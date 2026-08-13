@@ -72,7 +72,16 @@ a{color:var(--brand)}
   padding:10px 14px;padding-top:calc(10px + env(safe-area-inset-top));
   background:var(--card);border-bottom:1px solid var(--line);
 }
-.brand{display:flex;align-items:center;gap:10px;min-width:0}
+.brand{display:flex;align-items:center;gap:10px;min-width:0;flex-wrap:nowrap}
+/* הלוגו והשם הם כפתור אחד שמוביל למסך הסקירה */
+button.brand{
+  border:0;background:transparent;padding:4px 6px;margin:0;
+  font:inherit;color:inherit;cursor:pointer;border-radius:10px
+}
+button.brand:hover{background:var(--card-2)}
+button.brand:hover strong{color:var(--brand)}
+button.brand:active{transform:scale(.98)}
+button.brand:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
 /* שם האפליקציה נשאר תמיד בשורה אחת; במסך צר הוא פשוט קטן יותר */
 .brand strong{font-size:16px;white-space:nowrap}
 .brand-icon{font-size:22px;flex:none}
@@ -86,6 +95,15 @@ a{color:var(--brand)}
 .brand-text strong{font-size:16px}
 .brand-text small{color:var(--muted);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .topbar-actions{display:flex;align-items:center;gap:8px}
+/* בדסקטופ הכותרת ממורכזת במסך ולא נצמדת לצד */
+@media(min-width:820px){
+  .topbar{position:sticky;position:-webkit-sticky}
+  button.brand{
+    position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+    margin:0;z-index:1
+  }
+  button.brand:active{transform:translate(-50%,-50%) scale(.98)}
+}
 .icon-btn{
   border:1px solid var(--line);background:var(--card-2);border-radius:12px;
   width:38px;height:38px;font-size:17px;cursor:pointer;display:grid;place-items:center
@@ -202,7 +220,7 @@ button.stat:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
 
 /* ---- הודעות שניתן ללחוץ עליהן ---- */
 button.alert-card{
-  width:100%;display:block;text-align:start;font:inherit;color:inherit;cursor:pointer;
+  width:100%;display:block;text-align:center;font:inherit;color:inherit;cursor:pointer;
   border:1px solid var(--warn);background:var(--warn-soft);
   transition:transform .08s,filter .15s
 }
@@ -261,6 +279,29 @@ label.f{display:flex;flex-direction:column;gap:5px;font-size:12px;color:var(--mu
 .task .meta{display:flex;gap:6px;align-items:center;margin-top:4px}
 .task .meta input[type=date]{border:0;background:transparent;color:var(--muted);font-size:12px;padding:0;width:auto}
 .task .late{color:var(--danger);font-size:11.5px;font-weight:600}
+
+/* ---- העברת משימה לשלב אחר ---- */
+.phase-pick{position:relative;display:inline-flex;align-items:center;flex:none}
+.phase-pick i{
+  position:absolute;inset-inline-start:7px;font-style:normal;font-size:11px;
+  opacity:.7;pointer-events:none
+}
+.phase-sel{
+  appearance:none;-webkit-appearance:none;
+  border:1px solid var(--line);background:var(--card-2);border-radius:999px;
+  padding:3px 9px;padding-inline-start:22px;
+  font-size:11.5px;color:var(--muted);width:auto;cursor:pointer
+}
+.phase-sel:hover{border-color:var(--brand);color:var(--text)}
+
+/* ---- ניהול קטגוריות ---- */
+.seclist{margin-top:12px;border-top:1px solid var(--line)}
+.secrow{
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  padding:9px 2px;border-bottom:1px solid var(--line)
+}
+.secrow:last-child{border-bottom:0}
+.secrow b{font-size:13.5px}
 
 /* ---- Shopping ---- */
 .shopmeta{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
@@ -321,10 +362,10 @@ tfoot td{font-weight:700;border-bottom:0}
 <header class="topbar">
   <button class="icon-btn" id="btnMenu" type="button" aria-label="פתיחת התפריט"
           aria-expanded="false" aria-controls="drawer">☰</button>
-  <div class="brand">
-    <span class="brand-icon">🏡</span>
+  <button class="brand" id="btnBrand" type="button" data-tab="dash" title="מעבר למסך הסקירה">
+    <span class="brand-icon" aria-hidden="true">🏡</span>
     <strong>ניהול מעבר דירה</strong>
-  </div>
+  </button>
   <span class="spacer"></span>
   <button class="chip" id="syncBadge" type="button" title="מצב סנכרון">● מקומי</button>
   <button class="icon-btn" id="btnSettings" type="button" title="הגדרות" aria-label="הגדרות">⚙️</button>
@@ -500,26 +541,38 @@ var SEED_SERVICES = [
 ];
 
 /* ---------- תקציב ---------- */
+/* קטגוריות התקציב. recurring=true מסמן הוצאה חוזרת (חודשית),
+   וסכומיה מוצגים בנפרד במסך הסקירה כדי לא להתערבב בעלות המעבר החד-פעמית. */
+var SEED_BUDGET_SECTIONS = [
+  { id:'once',      name:'הוצאות חד-פעמיות', recurring:false },
+  { id:'recurring', name:'הוצאות שוטפות',     recurring:true  }
+];
+
 var SEED_BUDGET = [
-  'פיקדון / ביטחונות',
-  'שכר דירה מראש',
-  'דמי תיווך',
-  'ועד בית',
-  'ארנונה – תשלום ראשון',
-  'הובלה',
-  'ארגזים וחומרי אריזה',
-  'ניקיון דירה חדשה',
-  'ניקיון דירה ישנה',
-  'מנעולן והחלפת צילינדר',
-  'פירוק והתקנת מזגנים',
-  'חשמלאי / אינסטלטור',
-  'הרכבת רהיטים והתקנות',
-  'ריהוט',
-  'מוצרי חשמל',
-  'וילונות ותאורה',
-  'כלי מטבח ומצעים',
-  'ביטוח תכולה',
-  'טיפים ושונות'
+  ['once','פיקדון / ביטחונות'],
+  ['once','דמי תיווך'],
+  ['once','הובלה'],
+  ['once','ארגזים וחומרי אריזה'],
+  ['once','ניקיון דירה חדשה'],
+  ['once','ניקיון דירה ישנה'],
+  ['once','מנעולן והחלפת צילינדר'],
+  ['once','פירוק והתקנת מזגנים'],
+  ['once','חשמלאי / אינסטלטור'],
+  ['once','הרכבת רהיטים והתקנות'],
+  ['once','ריהוט'],
+  ['once','מוצרי חשמל'],
+  ['once','וילונות ותאורה'],
+  ['once','כלי מטבח ומצעים'],
+  ['once','טיפים ושונות'],
+
+  ['recurring','שכר דירה'],
+  ['recurring','ועד בית'],
+  ['recurring','ארנונה'],
+  ['recurring','חשמל'],
+  ['recurring','מים'],
+  ['recurring','גז'],
+  ['recurring','אינטרנט וטלוויזיה'],
+  ['recurring','ביטוח תכולה']
 ];
 
 /* ---------- קניות לדירה (בית ראשון – מתחילים כמעט מאפס) ---------- */
@@ -693,7 +746,13 @@ var SEED_CONTACTS = [
       docs: SEED_DOCS.map(function (d) {
         return { id: uid(), type: d[0], title: d[1], date: '', value: '', link: '', notes: '' };
       }),
-      budget: SEED_BUDGET.map(function (c) { return { id: uid(), cat: c, planned: 0, actual: 0, paid: false, note: '' }; }),
+      shopAreas: SHOP_AREAS.slice(),
+      budgetSections: SEED_BUDGET_SECTIONS.map(function (s) {
+        return { id: s.id, name: s.name, recurring: s.recurring };
+      }),
+      budget: SEED_BUDGET.map(function (c) {
+        return { id: uid(), section: c[0], cat: c[1], planned: 0, actual: 0, paid: false, note: '' };
+      }),
       services: SEED_SERVICES.map(function (s) {
         return { id: uid(), name: s.name, provider: s.provider, phone: s.phone, account: '', status: 'todo', notes: s.notes };
       }),
@@ -715,6 +774,25 @@ var SEED_CONTACTS = [
         if (!Array.isArray(s[k])) s[k] = d[k];
       });
       s.settings = Object.assign({}, d.settings, s.settings || {});
+
+      // --- שדרוג נתונים ישנים שנשמרו לפני שהיו קטגוריות ניתנות לעריכה ---
+      // אזורי הקניות: משלימים מתוך הפריטים הקיימים כדי שלא ייעלם אזור בשימוש
+      if (!Array.isArray(s.shopAreas) || !s.shopAreas.length) {
+        var areas = d.shopAreas.slice();
+        s.shopping.forEach(function (it) {
+          if (it.area && areas.indexOf(it.area) < 0) areas.push(it.area);
+        });
+        s.shopAreas = areas;
+      }
+      // קטגוריות התקציב: שורות ישנות היו שטוחות – משייכים אותן לקטגוריה הראשונה
+      if (!Array.isArray(s.budgetSections) || !s.budgetSections.length) {
+        s.budgetSections = d.budgetSections;
+      }
+      var secIds = s.budgetSections.map(function (x) { return x.id; });
+      s.budget.forEach(function (r) {
+        if (!r.section || secIds.indexOf(r.section) < 0) r.section = secIds[0];
+      });
+
       s.updatedAt = s.updatedAt || 0;
       return s;
     } catch (e) { return defaultState(); }
@@ -891,14 +969,37 @@ var SEED_CONTACTS = [
     });
     return { bought: bought, total: state.shopping.length, est: est, cost: cost, mustLeft: mustLeft };
   }
+  function sectionById(id) {
+    for (var i = 0; i < state.budgetSections.length; i++) {
+      if (state.budgetSections[i].id === id) return state.budgetSections[i];
+    }
+    return null;
+  }
+  function isRecurring(row) {
+    var s = sectionById(row.section);
+    return !!(s && s.recurring);
+  }
+  // סכום שורה שוטפת: מה ששולם בפועל, ואם עוד לא שולם – ההערכה המתוכננת
+  function rowMonthly(r) { return (Number(r.actual) || 0) || (Number(r.planned) || 0); }
+
   function budgetStats() {
-    var p = 0, a = 0, paid = 0;
+    var p = 0, a = 0, paid = 0, recurring = 0, oneTime = 0;
     state.budget.forEach(function (r) {
       p += Number(r.planned) || 0;
       a += Number(r.actual) || 0;
       if (r.paid) paid += Number(r.actual) || 0;
+      if (isRecurring(r)) recurring += rowMonthly(r);
+      else oneTime += Number(r.actual) || 0;
     });
-    return { planned: p, actual: a, paid: paid };
+    return { planned: p, actual: a, paid: paid, recurring: recurring, oneTime: oneTime };
+  }
+  function sectionStats(secId) {
+    var p = 0, a = 0, n = 0;
+    state.budget.forEach(function (r) {
+      if (r.section !== secId) return;
+      n++; p += Number(r.planned) || 0; a += Number(r.actual) || 0;
+    });
+    return { planned: p, actual: a, count: n };
   }
   function pct(a, b) { return b ? Math.round((a / b) * 100) : 0; }
 
@@ -1074,10 +1175,11 @@ var SEED_CONTACTS = [
 
     h += '<div class="card"><h2>כסף במבט מהיר</h2><div class="grid g2">' +
       statCard('תקציב מתוכנן', nis(bg.planned), null, null, 'budget') +
-      statCard('הוצאות המעבר', nis(bg.actual), null, null, 'budget') +
+      statCard('הוצאות המעבר', nis(bg.oneTime), null, null, 'budget') +
       statCard('קניות לדירה', nis(sh.cost), null, null, 'shopping') +
-      statCard('סה"כ יצא עד עכשיו', nis(bg.actual + sh.cost), null, null, 'budget') +
-      '</div><div class="small muted" style="margin-top:8px">"קניות לדירה" מגיע מלשונית הקניות ולא נספר פעמיים בתקציב.</div></div>';
+      statCard('הוצאות שוטפות', nis(bg.recurring), null, null, 'budget') +
+      statCard('סה"כ יצא עד עכשיו', nis(bg.oneTime + sh.cost), null, null, 'budget') +
+      '</div><div class="small muted" style="margin-top:8px">"קניות לדירה" מגיע מלשונית הקניות ולא נספר פעמיים. "הוצאות שוטפות" הוא הסכום החודשי מהקטגוריות המסומנות כחוזרות בתקציב, והוא אינו חלק מעלות המעבר החד-פעמית.</div></div>';
 
     return h;
   }
@@ -1123,7 +1225,12 @@ var SEED_CONTACTS = [
         h += '<div class="task' + (t.done ? ' done' : '') + '">' +
           '<input type="checkbox"' + (t.done ? ' checked' : '') + ' data-act="toggle" data-coll="tasks" data-id="' + t.id + '" data-field="done">' +
           '<div class="t"><input class="title" value="' + esc(t.title) + '" ' + bind('tasks', t.id, 'title') + '>' +
-          '<div class="meta"><span class="small muted">יעד:</span>' +
+          '<div class="meta">' +
+          // העברת המשימה לשלב אחר – אייקון שפותח רשימה נפתחת עם כל השלבים
+          '<span class="phase-pick" title="העברה לשלב אחר"><i aria-hidden="true">⇄</i>' +
+          '<select class="phase-sel" aria-label="העברת המשימה לשלב אחר" ' +
+          bind('tasks', t.id, 'phase') + '>' + opts(PHASES, t.phase, 'id', 'label') + '</select></span>' +
+          '<span class="small muted">יעד:</span>' +
           '<input type="date" value="' + esc(t.due || '') + '" ' + bind('tasks', t.id, 'due') + '>' +
           (late ? '<span class="late">באיחור</span>' : '') + '</div></div>' +
           '<button class="x" data-act="del" data-coll="tasks" data-id="' + t.id + '" title="מחיקה">✕</button></div>';
@@ -1190,7 +1297,7 @@ var SEED_CONTACTS = [
 
     h += '<div class="card"><h2>פריט חדש</h2><div class="row">' +
       '<input id="nsName" placeholder="מה צריך לקנות?" style="flex:2 1 180px">' +
-      '<select id="nsArea" style="flex:1 1 120px">' + opts(SHOP_AREAS, 'כללי') + '</select>' +
+      '<select id="nsArea" style="flex:1 1 120px">' + opts(state.shopAreas, state.shopAreas[0]) + '</select>' +
       '<select id="nsPrio" style="flex:1 1 120px">' + opts(SHOP_PRIO, 'soon', 'id', 'label') + '</select>' +
       '<button class="btn primary" data-act="add-shop">הוסף</button></div></div>';
 
@@ -1201,7 +1308,7 @@ var SEED_CONTACTS = [
       (viewShopping._hide ? ' checked' : '') + '> להסתיר מה שנקנה</label></div></div>';
 
     var shopShown = 0;
-    SHOP_AREAS.forEach(function (area) {
+    state.shopAreas.forEach(function (area) {
       var all = state.shopping.filter(function (s) { return s.area === area; });
       if (!all.length) return;
       var list = all.filter(function (s) {
@@ -1227,6 +1334,8 @@ var SEED_CONTACTS = [
           '<input type="number" inputmode="numeric" min="0" class="mini" placeholder="משוער ₪" value="' + (s.est || '') + '" ' + bind('shopping', s.id, 'est') + '>' +
           '<input type="number" inputmode="numeric" min="0" class="mini" placeholder="שולם ₪" value="' + (s.cost || '') + '" ' + bind('shopping', s.id, 'cost') + '>' +
           '<input class="mini" placeholder="חנות" value="' + esc(s.store || '') + '" ' + bind('shopping', s.id, 'store') + '>' +
+          '<select class="mini" title="העברה לקטגוריה אחרת" ' + bind('shopping', s.id, 'area') + '>' +
+          opts(state.shopAreas, s.area) + '</select>' +
           '</div></div>' +
           '<button class="x" data-act="del" data-coll="shopping" data-id="' + s.id + '" title="מחיקה">✕</button></div>';
         void pr;
@@ -1234,6 +1343,18 @@ var SEED_CONTACTS = [
       h += '</div>';
     });
     if (!shopShown) h += '<div class="card"><div class="empty">לא נמצאו פריטים מתאימים</div></div>';
+
+    // --- ניהול קטגוריות הקניות ---
+    h += '<div class="card"><h2>קטגוריות</h2><div class="row">' +
+      '<input id="nsaName" placeholder="שם קטגוריה חדשה, למשל: מרפסת" style="flex:2 1 180px">' +
+      '<button class="btn primary" data-act="add-shop-area">הוספה</button></div>' +
+      '<div class="seclist">' + state.shopAreas.map(function (a) {
+        var n = state.shopping.filter(function (s) { return s.area === a; }).length;
+        return '<div class="secrow"><b>' + esc(a) + '</b><span class="spacer"></span>' +
+          '<span class="tag">' + n + ' פריטים</span>' +
+          '<button class="x" data-act="del-shop-area" data-name="' + esc(a) + '" title="מחיקה">✕</button></div>';
+      }).join('') + '</div></div>';
+
     return searchNote(shopShown, sh.total, 'פריטים') + h;
   }
 
@@ -1272,28 +1393,67 @@ var SEED_CONTACTS = [
     var h = '<div class="card"><h2>סיכום</h2><div class="grid g4">' +
       statCard('מתוכנן', nis(bg.planned)) +
       statCard('בפועל', nis(bg.actual)) +
-      statCard('שולם', nis(bg.paid)) +
-      statCard('נותר', nis(bg.actual - bg.paid)) +
+      statCard('הוצאות המעבר', nis(bg.oneTime)) +
+      statCard('שוטף לחודש', nis(bg.recurring)) +
       '</div><div class="small muted" style="margin-top:8px">' +
       (bg.planned && bg.actual > bg.planned ? '⚠️ חריגה של ' + nis(bg.actual - bg.planned) + ' מהתכנון' :
         bg.planned ? '✅ בתוך התקציב (' + nis(bg.planned - bg.actual) + ' פנוי)' : 'כדאי למלא סכומים מתוכננים') +
       '</div></div>';
 
-    h += '<div class="card"><h2>הוצאות</h2><div class="tablewrap"><table><thead><tr>' +
-      '<th style="width:32%">סעיף</th><th>מתוכנן</th><th>בפועל</th><th>שולם</th><th>הערה</th><th></th>' +
-      '</tr></thead><tbody>';
     var bRows = state.budget.filter(function (r) { return hit(r.cat, r.note); });
-    bRows.forEach(function (r) {
-      h += '<tr>' +
-        '<td><input value="' + esc(r.cat) + '" ' + bind('budget', r.id, 'cat') + '></td>' +
-        '<td><input type="number" inputmode="numeric" min="0" value="' + (r.planned || '') + '" ' + bind('budget', r.id, 'planned') + ' style="min-width:80px"></td>' +
-        '<td><input type="number" inputmode="numeric" min="0" value="' + (r.actual || '') + '" ' + bind('budget', r.id, 'actual') + ' style="min-width:80px"></td>' +
-        '<td class="center"><input type="checkbox"' + (r.paid ? ' checked' : '') + ' data-act="toggle" data-coll="budget" data-id="' + r.id + '" data-field="paid"></td>' +
-        '<td><input value="' + esc(r.note || '') + '" placeholder="ספק / פרטים" ' + bind('budget', r.id, 'note') + ' style="min-width:120px"></td>' +
-        '<td><button class="x" data-act="del" data-coll="budget" data-id="' + r.id + '">✕</button></td></tr>';
+    var secOpts = state.budgetSections.map(function (s) { return { id: s.id, label: s.name }; });
+
+    state.budgetSections.forEach(function (sec) {
+      var rows = bRows.filter(function (r) { return r.section === sec.id; });
+      if (!rows.length && query()) return;
+      var st = sectionStats(sec.id);
+
+      h += '<div class="card"><h2>' + esc(sec.name) +
+        (sec.recurring ? '<span class="tag warn">חוזר כל חודש</span>' : '') +
+        '<span class="sub">' + nis(st.actual) + ' מתוך ' + nis(st.planned) + ' מתוכנן</span></h2>' +
+        '<div class="tablewrap"><table><thead><tr>' +
+        '<th style="width:28%">סעיף</th><th>מתוכנן</th><th>בפועל</th><th>שולם</th><th>קטגוריה</th><th>הערה</th><th></th>' +
+        '</tr></thead><tbody>';
+
+      if (!rows.length) h += '<tr><td colspan="7"><div class="empty">אין סעיפים בקטגוריה הזו</div></td></tr>';
+      rows.forEach(function (r) {
+        h += '<tr>' +
+          '<td><input value="' + esc(r.cat) + '" ' + bind('budget', r.id, 'cat') + '></td>' +
+          '<td><input type="number" inputmode="numeric" min="0" value="' + (r.planned || '') + '" ' + bind('budget', r.id, 'planned') + ' style="min-width:80px"></td>' +
+          '<td><input type="number" inputmode="numeric" min="0" value="' + (r.actual || '') + '" ' + bind('budget', r.id, 'actual') + ' style="min-width:80px"></td>' +
+          '<td class="center"><input type="checkbox"' + (r.paid ? ' checked' : '') + ' data-act="toggle" data-coll="budget" data-id="' + r.id + '" data-field="paid"></td>' +
+          '<td><select ' + bind('budget', r.id, 'section') + ' style="min-width:120px">' +
+          opts(secOpts, r.section, 'id', 'label') + '</select></td>' +
+          '<td><input value="' + esc(r.note || '') + '" placeholder="ספק / פרטים" ' + bind('budget', r.id, 'note') + ' style="min-width:120px"></td>' +
+          '<td><button class="x" data-act="del" data-coll="budget" data-id="' + r.id + '">✕</button></td></tr>';
+      });
+
+      h += '</tbody><tfoot><tr><td>סה"כ</td><td>' + nis(st.planned) + '</td><td>' + nis(st.actual) +
+        '</td><td colspan="4"></td></tr></tfoot></table></div>' +
+        '<div class="row" style="margin-top:10px">' +
+        '<button class="btn" data-act="add-budget" data-section="' + sec.id + '">➕ סעיף חדש</button>' +
+        '<span class="spacer"></span>' +
+        '<button class="btn sm danger" data-act="del-budget-section" data-id="' + sec.id + '">מחיקת הקטגוריה</button>' +
+        '</div></div>';
     });
-    h += '</tbody><tfoot><tr><td>סה"כ</td><td>' + nis(bg.planned) + '</td><td>' + nis(bg.actual) + '</td><td colspan="3"></td></tr></tfoot></table></div>' +
-      '<div class="row" style="margin-top:10px"><button class="btn" data-act="add-budget">➕ סעיף חדש</button></div></div>';
+
+    // --- ניהול קטגוריות ---
+    h += '<div class="card"><h2>קטגוריות התקציב</h2>' +
+      '<div class="row">' +
+      '<input id="nbsName" placeholder="שם קטגוריה חדשה, למשל: שיפוץ" style="flex:2 1 180px">' +
+      '<label class="row small" style="gap:6px;flex:none"><input type="checkbox" id="nbsRecurring"> הוצאה חוזרת (חודשית)</label>' +
+      '<button class="btn primary" data-act="add-budget-section">הוספה</button></div>' +
+      '<div class="small muted" style="margin-top:8px">קטגוריות מסומנות כ"חוזרות" נספרות בנפרד בסקירה, ' +
+      'תחת «הוצאות שוטפות», ולא מתערבבות בעלות החד-פעמית של המעבר.</div>' +
+      '<div class="seclist">' + state.budgetSections.map(function (s) {
+        var n = sectionStats(s.id).count;
+        return '<div class="secrow"><b>' + esc(s.name) + '</b>' +
+          '<label class="row small" style="gap:5px;flex:none"><input type="checkbox"' + (s.recurring ? ' checked' : '') +
+          ' data-act="toggle-section-recurring" data-id="' + s.id + '"> חוזרת</label>' +
+          '<span class="tag">' + n + ' סעיפים</span>' +
+          '<button class="x" data-act="del-budget-section" data-id="' + s.id + '" title="מחיקה">✕</button></div>';
+      }).join('') + '</div></div>';
+
     return searchNote(bRows.length, state.budget.length, 'סעיפים') + h;
   }
 
@@ -1401,9 +1561,15 @@ var SEED_CONTACTS = [
       '<b>⚠️ הדפדפן הזה חוסם שמירה מקומית</b>' +
       '<div class="small" style="margin-top:4px">מה שתמלאו כאן ייעלם ברענון הדף. ' +
       'זה קורה בדרך כלל בגלישה פרטית או כשחסימת עוגיות מופעלת – כדאי לפתוח את הדף בחלון רגיל.</div></div>';
+    // מחיקה או עריכה בונות מחדש את המסך. גלילה לראש הדף נכונה רק כשעוברים
+    // מסך – אחרת המשתמש "נזרק" למעלה אחרי כל לחיצה על ✕.
+    var sameView = render._last === view;
+    var keepY = window.scrollY;
     $('#views').innerHTML = warn + (VIEWS[view] || viewDash)();
     $('#searchClear').classList.toggle('hidden', !query());
-    window.scrollTo({ top: 0 });
+    if (sameView) window.scrollTo({ top: keepY });
+    else window.scrollTo({ top: 0 });
+    render._last = view;
   }
 
   /* ---------- פעולות ---------- */
@@ -1455,8 +1621,54 @@ var SEED_CONTACTS = [
       save(); render(); toast('ארגז מס\' ' + (max + 1) + ' נוסף');
     }
     else if (act === 'add-budget') {
-      state.budget.push({ id: uid(), cat: '', planned: 0, actual: 0, paid: false, note: '' });
+      state.budget.push({
+        id: uid(), section: el.dataset.section || state.budgetSections[0].id,
+        cat: '', planned: 0, actual: 0, paid: false, note: ''
+      });
       save(); render();
+    }
+    else if (act === 'add-budget-section') {
+      var bsn = $('#nbsName');
+      var bsName = bsn.value.trim();
+      if (!bsName) { bsn.focus(); return; }
+      if (state.budgetSections.some(function (s) { return s.name === bsName; })) {
+        toast('כבר קיימת קטגוריה בשם הזה'); return;
+      }
+      state.budgetSections.push({ id: uid(), name: bsName, recurring: $('#nbsRecurring').checked });
+      save(); render(); toast('הקטגוריה נוספה');
+    }
+    else if (act === 'del-budget-section') {
+      if (state.budgetSections.length < 2) { toast('חייבת להישאר לפחות קטגוריה אחת'); return; }
+      var secId = el.dataset.id;
+      var sec = sectionById(secId);
+      var inSec = state.budget.filter(function (r) { return r.section === secId; });
+      var fallback = state.budgetSections.filter(function (s) { return s.id !== secId; })[0];
+      if (inSec.length && !confirm('בקטגוריה "' + sec.name + '" יש ' + inSec.length +
+          ' סעיפים. למחוק את הקטגוריה ולהעביר אותם ל"' + fallback.name + '"?')) return;
+      inSec.forEach(function (r) { r.section = fallback.id; });
+      state.budgetSections = state.budgetSections.filter(function (s) { return s.id !== secId; });
+      save(); render();
+      toast(inSec.length ? 'הקטגוריה נמחקה והסעיפים הועברו' : 'הקטגוריה נמחקה');
+    }
+    else if (act === 'add-shop-area') {
+      var san = $('#nsaName');
+      var saName = san.value.trim();
+      if (!saName) { san.focus(); return; }
+      if (state.shopAreas.indexOf(saName) !== -1) { toast('כבר קיימת קטגוריה בשם הזה'); return; }
+      state.shopAreas.push(saName);
+      save(); render(); toast('הקטגוריה נוספה');
+    }
+    else if (act === 'del-shop-area') {
+      if (state.shopAreas.length < 2) { toast('חייבת להישאר לפחות קטגוריה אחת'); return; }
+      var areaName = el.dataset.name;
+      var items = state.shopping.filter(function (s) { return s.area === areaName; });
+      var otherArea = state.shopAreas.filter(function (a) { return a !== areaName; })[0];
+      if (items.length && !confirm('בקטגוריה "' + areaName + '" יש ' + items.length +
+          ' פריטים. למחוק את הקטגוריה ולהעביר אותם ל"' + otherArea + '"?')) return;
+      items.forEach(function (s) { s.area = otherArea; });
+      state.shopAreas = state.shopAreas.filter(function (a) { return a !== areaName; });
+      save(); render();
+      toast(items.length ? 'הקטגוריה נמחקה והפריטים הועברו' : 'הקטגוריה נמחקה');
     }
     else if (act === 'add-shop') {
       var sn = $('#nsName');
@@ -1543,7 +1755,28 @@ var SEED_CONTACTS = [
   });
   document.addEventListener('change', function (e) {
     var el = e.target.closest('[data-act="edit"]');
-    if (el && (el.tagName === 'SELECT' || el.type === 'date')) { if (applyEdit(el)) render(); return; }
+    if (el && (el.tagName === 'SELECT' || el.type === 'date')) {
+      // העברת משימה לשלב אחר מוציאה אותה מהרשימה הנוכחית – מאשרים בהודעה קצרה
+      var movedTask = el.dataset.coll === 'tasks' && el.dataset.field === 'phase';
+      var movedShop = el.dataset.coll === 'shopping' && el.dataset.field === 'area';
+      var target = el.value;
+      if (applyEdit(el)) {
+        render();
+        if (movedTask) {
+          var ph = PHASES.filter(function (p) { return p.id === target; })[0];
+          toast('המשימה הועברה ל"' + (ph ? ph.label : '') + '"');
+        } else if (movedShop) {
+          toast('הפריט הועבר ל"' + target + '"');
+        }
+      }
+      return;
+    }
+    var rec = e.target.closest('[data-act="toggle-section-recurring"]');
+    if (rec) {
+      var sc = sectionById(rec.dataset.id);
+      if (sc) { sc.recurring = rec.checked; save(); render(); }
+      return;
+    }
     var tg = e.target.closest('[data-act="toggle"]');
     if (tg) {
       var it = findItem(tg.dataset.coll, tg.dataset.id);
