@@ -179,6 +179,9 @@ button.brand:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
 .card h2{font-size:15px;margin-bottom:10px;display:flex;align-items:center;gap:8px;justify-content:space-between}
 .card h2 .sub{font-size:12px;color:var(--muted);font-weight:400}
 .grid{display:grid;gap:10px}
+/* רשת שיושבת ישירות במסך צריכה את אותו מרווח תחתון ככרטיס, אחרת
+   האלמנט שאחריה נצמד אליה ונראה דחוק */
+.views > .grid{margin-bottom:12px}
 .grid.g2{grid-template-columns:repeat(2,1fr)}
 .grid.g4{grid-template-columns:repeat(2,1fr)}
 @media(min-width:700px){.grid.g4{grid-template-columns:repeat(4,1fr)}}
@@ -220,7 +223,7 @@ button.stat:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
 
 /* ---- הודעות שניתן ללחוץ עליהן ---- */
 button.alert-card{
-  width:100%;display:block;text-align:center;font:inherit;color:inherit;cursor:pointer;
+  width:100%;display:block;text-align:start;font:inherit;color:inherit;cursor:pointer;
   border:1px solid var(--warn);background:var(--warn-soft);
   transition:transform .08s,filter .15s
 }
@@ -1004,17 +1007,24 @@ var SEED_CONTACTS = [
   function pct(a, b) { return b ? Math.round((a / b) * 100) : 0; }
 
   /* ---------- חיפוש כללי ---------- */
+  // אותיות סופיות: בלי נרמול, חיפוש "מזגן" לא היה מוצא "מזגנים",
+  // כי נו"ן סופית (ן) ונו"ן רגילה (נ) הן תווים שונים.
+  var FINALS = { 'ך': 'כ', 'ם': 'מ', 'ן': 'נ', 'ף': 'פ', 'ץ': 'צ' };
+  function heNorm(s) {
+    return String(s == null ? '' : s).toLowerCase()
+      .replace(/[ךםןףץ]/g, function (c) { return FINALS[c]; });
+  }
   function query() {
     var el = $('#globalSearch');
     return el ? el.value.trim().toLowerCase() : '';
   }
   // מחזיר true אם אין חיפוש פעיל, או אם אחד השדות מכיל את מילת החיפוש
   function hit() {
-    var q = query();
+    var q = heNorm(query());
     if (!q) return true;
     for (var i = 0; i < arguments.length; i++) {
       var v = arguments[i];
-      if (v != null && String(v).toLowerCase().indexOf(q) !== -1) return true;
+      if (v != null && heNorm(v).indexOf(q) !== -1) return true;
     }
     return false;
   }
