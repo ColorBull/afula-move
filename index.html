@@ -279,9 +279,24 @@ label.f{display:flex;flex-direction:column;gap:5px;font-size:12px;color:var(--mu
 .task .t{flex:1;min-width:0}
 .task .t input.title{border:0;background:transparent;padding:2px 0;font-weight:500}
 .task.done .t input.title{text-decoration:line-through;color:var(--muted)}
-.task .meta{display:flex;gap:6px;align-items:center;margin-top:4px}
-.task .meta input[type=date]{border:0;background:transparent;color:var(--muted);font-size:12px;padding:0;width:auto}
+/* flex-wrap חיוני: בלעדיו שורת הפרטים גולשת מהכרטיס ונחתכת במסך צר */
+.task .meta{display:flex;gap:6px;align-items:center;margin-top:4px;flex-wrap:wrap}
+.task .meta input[type=date]{border:0;background:transparent;color:var(--muted);font-size:12px;padding:0;width:auto;max-width:100%}
 .task .late{color:var(--danger);font-size:11.5px;font-weight:600}
+
+/* במסך צר כל האלמנטים מתכווצים, כדי שהשורה תישאר קריאה ולא תיחתך */
+@media(max-width:480px){
+  .task{gap:7px;padding:8px 2px}
+  .task .t input.title{font-size:14.5px}
+  .task input[type=checkbox]{width:17px;height:17px;margin-top:3px}
+  .task .meta{gap:5px;margin-top:5px}
+  .task .meta .small{display:none}          /* התווית "יעד:" מיותרת ליד שדה תאריך */
+  .task .meta input[type=date]{font-size:11.5px}
+  .task .late{font-size:11px}
+  .x{font-size:15px;padding:3px 5px}
+  .shopmeta{gap:5px}
+  .shopmeta .mini{flex:1 1 76px;min-width:70px;font-size:11.5px;padding:4px 6px}
+}
 
 /* ---- מספור וסדר עדיפות ---- */
 .rank{
@@ -301,10 +316,10 @@ label.f{display:flex;flex-direction:column;gap:5px;font-size:12px;color:var(--mu
 .rank button:disabled{opacity:.22;cursor:default}
 .rank button:focus-visible{outline:2px solid var(--brand);outline-offset:-1px}
 .task.done .rank b{opacity:.5}
-/* במסך מגע החצים קטנים מדי לאצבע, ולכן שטח הלחיצה גדל – רק שם */
+/* במסך מגע שטח הלחיצה גדל מעט – אך לא מספיק כדי להגביה את השורה */
 @media (pointer: coarse){
-  .rank{min-width:32px}
-  .rank button{padding:8px 10px;font-size:11px}
+  .rank{min-width:30px}
+  .rank button{padding:4px 9px;font-size:11px}
 }
 
 /* ---- העברת משימה לשלב אחר ---- */
@@ -317,7 +332,11 @@ label.f{display:flex;flex-direction:column;gap:5px;font-size:12px;color:var(--mu
   appearance:none;-webkit-appearance:none;
   border:1px solid var(--line);background:var(--card-2);border-radius:999px;
   padding:3px 9px;padding-inline-start:22px;
-  font-size:11.5px;color:var(--muted);width:auto;cursor:pointer
+  font-size:11.5px;color:var(--muted);width:auto;max-width:100%;cursor:pointer
+}
+@media(max-width:480px){
+  .phase-sel{font-size:11px;padding:2px 7px;padding-inline-start:19px}
+  .phase-pick i{inset-inline-start:6px;font-size:10px}
 }
 .phase-sel:hover{border-color:var(--brand);color:var(--text)}
 
@@ -1279,22 +1298,17 @@ var SEED_CONTACTS = [
         '<div class="bar" style="margin-bottom:8px"><i style="width:' + pct(done, all.length) + '%"></i></div>';
       if (!list.length) h += '<div class="empty">אין משימות בשלב הזה</div>';
 
-      // מספור עדיפות פנימי לכל שלב. החצים זמינים רק כשהרשימה מוצגת
-      // במלואה – אחרת החלפה עם פריט מוסתר הייתה נראית כאילו כלום לא קרה.
-      var rank = {};
-      all.forEach(function (x, i) { rank[x.id] = i; });
-      var canReorder = !query() && !viewTasks._st;
-
-      list.forEach(function (t) {
+      // המספור והחצים פועלים על מה שמוצג בפועל, כך שהדירוג זמין גם
+      // כשמסננים. ההזזה מחליפה עם השכן הנראה, ולכן תמיד יש אפקט גלוי.
+      list.forEach(function (t, i) {
         var late = !t.done && t.due && t.due < todayISO();
-        var i = rank[t.id];
         h += '<div class="task' + (t.done ? ' done' : '') + '">' +
           '<div class="rank">' +
-          (canReorder ? '<button type="button" data-act="task-move" data-dir="up" data-id="' + t.id +
-            '" title="העלאה בעדיפות"' + (i === 0 ? ' disabled' : '') + '>▲</button>' : '') +
+          '<button type="button" data-act="task-move" data-dir="up" data-id="' + t.id +
+          '" title="העלאה בעדיפות"' + (i === 0 ? ' disabled' : '') + '>▲</button>' +
           '<b>' + (i + 1) + '</b>' +
-          (canReorder ? '<button type="button" data-act="task-move" data-dir="down" data-id="' + t.id +
-            '" title="הורדה בעדיפות"' + (i === all.length - 1 ? ' disabled' : '') + '>▼</button>' : '') +
+          '<button type="button" data-act="task-move" data-dir="down" data-id="' + t.id +
+          '" title="הורדה בעדיפות"' + (i === list.length - 1 ? ' disabled' : '') + '>▼</button>' +
           '</div>' +
           '<input type="checkbox"' + (t.done ? ' checked' : '') + ' data-act="toggle" data-coll="tasks" data-id="' + t.id + '" data-field="done">' +
           '<div class="t"><input class="title" value="' + esc(t.title) + '" ' + bind('tasks', t.id, 'title') + '>' +
@@ -1908,13 +1922,23 @@ var SEED_CONTACTS = [
   }
 
   /* ---------- פעולות ---------- */
+  // אותם תנאי סינון שמסך המשימות מציג. חשוב שההזזה תעבוד על אותה
+  // רשימה שהמשתמש רואה, אחרת החלפה עם פריט מוסתר נראית כאילו כלום לא קרה.
+  function taskVisible(t) {
+    if (viewTasks._st === 'open' && t.done) return false;
+    if (viewTasks._st === 'done' && !t.done) return false;
+    return hit(t.title);
+  }
+
   // הזזת משימה בסדר העדיפות, בתוך השלב שלה בלבד. הסדר נקבע לפי מיקום
-  // במערך, ולכן מספיק להחליף בין שתי המשימות השכנות מאותו שלב.
+  // במערך, ולכן מספיק להחליף מקומות עם השכן הנראה מאותו שלב.
   function moveTask(id, dir) {
     var t = findItem('tasks', id);
     if (!t) return;
     var idxs = [];
-    state.tasks.forEach(function (x, i) { if (x.phase === t.phase) idxs.push(i); });
+    state.tasks.forEach(function (x, i) {
+      if (x.phase === t.phase && taskVisible(x)) idxs.push(i);
+    });
     var pos = idxs.indexOf(state.tasks.indexOf(t));
     var target = pos + dir;
     if (pos < 0 || target < 0 || target >= idxs.length) return;
