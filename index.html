@@ -297,6 +297,14 @@ label.f{display:flex;flex-direction:column;gap:5px;font-size:12px;color:var(--mu
 }
 .phase-sel:hover{border-color:var(--brand);color:var(--text)}
 
+/* ---- שורת סיכום לקטגוריית תקציב ---- */
+.sectotal{
+  display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+  margin-top:10px;padding-top:10px;border-top:1px solid var(--line);
+  font-size:13.5px
+}
+.sectotal b{font-variant-numeric:tabular-nums}
+
 /* ---- ניהול קטגוריות ---- */
 .seclist{margin-top:12px;border-top:1px solid var(--line)}
 .secrow{
@@ -1200,6 +1208,22 @@ var SEED_CONTACTS = [
       '<select id="ntPhase" style="flex:1 1 130px">' + opts(PHASES, 'p30', 'id', 'label') + '</select>' +
       '<button class="btn primary" data-act="add-task">הוסף</button></div></div>';
 
+    // --- סנכרון ללוח שנה ---
+    if (!ARTIFACT) {
+      var syncable = state.tasks.filter(gcalEligible).length;
+      var last = state.settings.calendarSyncedAt;
+      h += '<div class="card"><h2>לוח שנה <span class="sub">' + syncable + ' משימות עם תאריך יעד</span></h2>' +
+        '<div class="row">' +
+        '<button class="btn primary" data-act="gcal-sync"' + (gcalBusy ? ' disabled' : '') + '>' +
+        (gcalBusy ? '⏳ מסנכרן…' : '🗓️ סנכרן ללוח שנה') + '</button>' +
+        (last && !gcalBusy ? '<span class="small muted">עודכן לאחרונה: ' +
+          new Intl.DateTimeFormat('he-IL', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(last)) +
+          '</span>' : '') +
+        '</div>' +
+        (gcalMsg ? '<div class="small" style="margin-top:8px">' + esc(gcalMsg) + '</div>' : '') +
+        '</div>';
+    }
+
     // סינון לפי שלב + לפי מה שכבר בוצע
     h += '<div class="card"><div class="row">' +
       '<label class="f">שלב<select id="taskPhase">' +
@@ -1421,25 +1445,33 @@ var SEED_CONTACTS = [
       h += '<div class="card"><h2>' + esc(sec.name) +
         (sec.recurring ? '<span class="tag warn">חוזר כל חודש</span>' : '') +
         '<span class="sub">' + nis(st.actual) + ' מתוך ' + nis(st.planned) + ' מתוכנן</span></h2>' +
-        '<div class="tablewrap"><table><thead><tr>' +
-        '<th style="width:28%">סעיף</th><th>מתוכנן</th><th>בפועל</th><th>שולם</th><th>קטגוריה</th><th>הערה</th><th></th>' +
-        '</tr></thead><tbody>';
+        '';
 
-      if (!rows.length) h += '<tr><td colspan="7"><div class="empty">אין סעיפים בקטגוריה הזו</div></td></tr>';
+      if (!rows.length) h += '<div class="empty">אין סעיפים בקטגוריה הזו</div>';
+      // אותו פריסת כרטיס כמו במשימות ובקניות: שם הסעיף גדול ובולט,
+      // והשדות הקטנים מתחתיו נשברים לשורות במסך צר במקום להיחתך
       rows.forEach(function (r) {
-        h += '<tr>' +
-          '<td><input value="' + esc(r.cat) + '" ' + bind('budget', r.id, 'cat') + '></td>' +
-          '<td><input type="number" inputmode="numeric" min="0" value="' + (r.planned || '') + '" ' + bind('budget', r.id, 'planned') + ' style="min-width:80px"></td>' +
-          '<td><input type="number" inputmode="numeric" min="0" value="' + (r.actual || '') + '" ' + bind('budget', r.id, 'actual') + ' style="min-width:80px"></td>' +
-          '<td class="center"><input type="checkbox"' + (r.paid ? ' checked' : '') + ' data-act="toggle" data-coll="budget" data-id="' + r.id + '" data-field="paid"></td>' +
-          '<td><select ' + bind('budget', r.id, 'section') + ' style="min-width:120px">' +
-          opts(secOpts, r.section, 'id', 'label') + '</select></td>' +
-          '<td><input value="' + esc(r.note || '') + '" placeholder="ספק / פרטים" ' + bind('budget', r.id, 'note') + ' style="min-width:120px"></td>' +
-          '<td><button class="x" data-act="del" data-coll="budget" data-id="' + r.id + '">✕</button></td></tr>';
+        h += '<div class="task' + (r.paid ? ' done' : '') + '">' +
+          '<input type="checkbox"' + (r.paid ? ' checked' : '') +
+          ' title="שולם" data-act="toggle" data-coll="budget" data-id="' + r.id + '" data-field="paid">' +
+          '<div class="t"><input class="title" value="' + esc(r.cat) + '" placeholder="שם הסעיף" ' +
+          bind('budget', r.id, 'cat') + '>' +
+          '<div class="shopmeta">' +
+          '<input type="number" inputmode="numeric" min="0" class="mini" placeholder="מתוכנן ₪" value="' +
+          (r.planned || '') + '" ' + bind('budget', r.id, 'planned') + '>' +
+          '<input type="number" inputmode="numeric" min="0" class="mini" placeholder="בפועל ₪" value="' +
+          (r.actual || '') + '" ' + bind('budget', r.id, 'actual') + '>' +
+          '<select class="mini" title="קטגוריה" ' + bind('budget', r.id, 'section') + '>' +
+          opts(secOpts, r.section, 'id', 'label') + '</select>' +
+          '<input class="mini" placeholder="ספק / פרטים" value="' + esc(r.note || '') + '" ' +
+          bind('budget', r.id, 'note') + '>' +
+          '</div></div>' +
+          '<button class="x" data-act="del" data-coll="budget" data-id="' + r.id + '" title="מחיקה">✕</button></div>';
       });
 
-      h += '</tbody><tfoot><tr><td>סה"כ</td><td>' + nis(st.planned) + '</td><td>' + nis(st.actual) +
-        '</td><td colspan="4"></td></tr></tfoot></table></div>' +
+      h += '<div class="sectotal"><span>סה"כ</span><span class="spacer"></span>' +
+        '<span class="small muted">מתוכנן</span><b>' + nis(st.planned) + '</b>' +
+        '<span class="small muted">בפועל</span><b>' + nis(st.actual) + '</b></div>' +
         '<div class="row" style="margin-top:10px">' +
         '<button class="btn" data-act="add-budget" data-section="' + sec.id + '">➕ סעיף חדש</button>' +
         '<span class="spacer"></span>' +
@@ -1582,6 +1614,260 @@ var SEED_CONTACTS = [
     render._last = view;
   }
 
+  /* ---------- סנכרון ללוח שנה של Google ---------- */
+  // סנכרון חד-כיווני: האפליקציה היא מקור האמת, לוח השנה רק משקף אותה.
+  // נכתב ללוח ייעודי שהאפליקציה יוצרת בעצמה, ולכן ההרשאה המבוקשת היא
+  // calendar.app.created – היא לא מאפשרת גישה ללוחות הקיימים של המשתמש.
+  var GCAL = {
+    clientId: '691992999528-jcnsvhqb73hm5k7uisnl7av5k3pe5bsc.apps.googleusercontent.com',
+    scope: 'https://www.googleapis.com/auth/calendar.app.created',
+    api: 'https://www.googleapis.com/calendar/v3',
+    calendarName: 'ניהול מעבר דירה',
+    tz: 'Asia/Jerusalem',
+    startTime: '17:30:00',
+    endTime: '18:00:00',
+    reminderMinutes: 30,
+    lsToken: 'afula_move_gcal_token'
+  };
+  var gcalBusy = false;
+  var gcalMsg = '';
+
+  function gcalGetToken() {
+    try {
+      var t = JSON.parse(safeLS.get(GCAL.lsToken) || 'null');
+      // שוליים של דקה, כדי לא להתחיל בקשה עם טוקן שפג באמצע
+      if (t && t.token && t.exp > Date.now() + 60000) return t.token;
+    } catch (e) {}
+    return null;
+  }
+
+  function gcalLoadGis() {
+    if (window.google && window.google.accounts && window.google.accounts.oauth2) {
+      return Promise.resolve();
+    }
+    return new Promise(function (resolve, reject) {
+      var s = document.createElement('script');
+      s.src = 'https://accounts.google.com/gsi/client';
+      s.async = true; s.defer = true;
+      s.onload = resolve;
+      s.onerror = function () { reject(new Error('לא הצלחנו לטעון את שירות ההרשאות של Google')); };
+      document.head.appendChild(s);
+    });
+  }
+
+  // מבקש הרשאה. הטוקן קצר-מועד ונשמר רק במכשיר הזה (לא בענן).
+  function gcalAuthorize() {
+    return gcalLoadGis().then(function () {
+      return new Promise(function (resolve, reject) {
+        var client = window.google.accounts.oauth2.initTokenClient({
+          client_id: GCAL.clientId,
+          scope: GCAL.scope,
+          callback: function (resp) {
+            if (resp && resp.access_token) {
+              safeLS.set(GCAL.lsToken, JSON.stringify({
+                token: resp.access_token,
+                exp: Date.now() + ((Number(resp.expires_in) || 3600) - 60) * 1000
+              }));
+              resolve(resp.access_token);
+            } else {
+              reject(new Error('ההרשאה לא הושלמה'));
+            }
+          },
+          error_callback: function (err) {
+            var t = (err && err.type) || '';
+            reject(new Error(t === 'popup_closed' ? 'חלון ההרשאה נסגר' :
+              t === 'popup_failed_to_open' ? 'הדפדפן חסם את חלון ההרשאה' :
+                'ההרשאה נכשלה'));
+          }
+        });
+        client.requestAccessToken({ prompt: '' });
+      });
+    });
+  }
+
+  function gcalToken(forceNew) {
+    var t = !forceNew && gcalGetToken();
+    return t ? Promise.resolve(t) : gcalAuthorize();
+  }
+
+  // קריאה ל-API. אם הטוקן נדחה, מנסה פעם אחת נוספת עם הרשאה מחודשת.
+  function gcalFetch(path, opts, retried) {
+    return gcalToken(!!retried).then(function (token) {
+      var o = opts || {};
+      return fetch(GCAL.api + path, {
+        method: o.method || 'GET',
+        headers: {
+          'Authorization': 'Bearer ' + token,
+          'Content-Type': 'application/json'
+        },
+        body: o.body ? JSON.stringify(o.body) : undefined
+      }).then(function (res) {
+        if (res.status === 401 && !retried) {
+          safeLS.del(GCAL.lsToken);
+          return gcalFetch(path, opts, true);
+        }
+        if (res.status === 204) return {};
+        return res.json().then(function (data) {
+          if (!res.ok) {
+            var msg = (data && data.error && data.error.message) || ('שגיאה ' + res.status);
+            if (res.status === 403 && /rate|quota/i.test(msg)) msg = 'יותר מדי בקשות – כדאי לנסות שוב בעוד רגע';
+            var err = new Error(msg);
+            err.status = res.status;
+            throw err;
+          }
+          return data;
+        });
+      });
+    });
+  }
+
+  // מוודא שהלוח הייעודי קיים; אם נמחק ידנית – יוצר אותו מחדש
+  function gcalEnsureCalendar() {
+    var id = state.settings.calendarId;
+    if (!id) return gcalCreateCalendar();
+    return gcalFetch('/calendars/' + encodeURIComponent(id))
+      .then(function () { return id; })
+      .catch(function (e) {
+        if (e.status === 404 || e.status === 403) return gcalCreateCalendar();
+        throw e;
+      });
+  }
+
+  function gcalCreateCalendar() {
+    return gcalFetch('/calendars', {
+      method: 'POST',
+      body: { summary: GCAL.calendarName, timeZone: GCAL.tz }
+    }).then(function (cal) {
+      state.settings.calendarId = cal.id;
+      save();
+      return cal.id;
+    });
+  }
+
+  function gcalEligible(t) { return !!t.due && !t.done; }
+  // כל שינוי באחד מהשדות האלה מחייב עדכון של האירוע
+  function gcalHash(t) {
+    var p = PHASES.filter(function (x) { return x.id === t.phase; })[0];
+    return [t.title, t.due, p ? p.label : t.phase].join('|');
+  }
+
+  function gcalEventBody(t) {
+    var p = PHASES.filter(function (x) { return x.id === t.phase; })[0];
+    return {
+      summary: t.title,
+      description: 'שלב: ' + (p ? p.label : '') +
+        '\n\nנוצר אוטומטית מתוך "ניהול מעבר דירה". שינויים כאן יידרסו בסנכרון הבא.',
+      start: { dateTime: t.due + 'T' + GCAL.startTime, timeZone: GCAL.tz },
+      end: { dateTime: t.due + 'T' + GCAL.endTime, timeZone: GCAL.tz },
+      reminders: { useDefault: false, overrides: [{ method: 'popup', minutes: GCAL.reminderMinutes }] },
+      extendedProperties: { private: { afulaTaskId: t.id } }
+    };
+  }
+
+  // שולף את כל האירועים בלוח שלנו, כדי לזהות מה כבר קיים ומה התייתם
+  function gcalListEvents(calId) {
+    var all = [];
+    function page(token) {
+      var q = '/calendars/' + encodeURIComponent(calId) +
+        '/events?maxResults=2500&showDeleted=false' + (token ? '&pageToken=' + token : '');
+      return gcalFetch(q).then(function (data) {
+        all = all.concat(data.items || []);
+        return data.nextPageToken ? page(data.nextPageToken) : all;
+      });
+    }
+    return page('');
+  }
+
+  function gcalSync() {
+    if (gcalBusy) return;
+    if (ARTIFACT) { toast('סנכרון ללוח שנה זמין רק באתר עצמו'); return; }
+    gcalBusy = true; gcalMsg = ''; render();
+
+    var created = 0, updated = 0, deleted = 0, calId;
+
+    gcalEnsureCalendar()
+      .then(function (id) { calId = id; return gcalListEvents(id); })
+      .then(function (events) {
+        // מיפוי מזהה משימה -> אירוע. הלוח כולו שלנו, ולכן אירוע בלי משימה
+        // מתאימה הוא שריד של משימה שנמחקה (אולי במכשיר אחר) וצריך להימחק.
+        var byTask = {};
+        var orphans = [];
+        events.forEach(function (ev) {
+          var tid = ev.extendedProperties && ev.extendedProperties.private &&
+            ev.extendedProperties.private.afulaTaskId;
+          if (tid && !byTask[tid]) byTask[tid] = ev; else orphans.push(ev);
+        });
+
+        var chain = Promise.resolve();
+        var seen = {};
+
+        state.tasks.forEach(function (t) {
+          var ev = byTask[t.id];
+          if (ev) seen[t.id] = true;
+
+          if (gcalEligible(t)) {
+            var hash = gcalHash(t);
+            if (!ev) {
+              chain = chain.then(function () {
+                return gcalFetch('/calendars/' + encodeURIComponent(calId) + '/events',
+                  { method: 'POST', body: gcalEventBody(t) })
+                  .then(function (res) {
+                    t.calendarEventId = res.id; t.syncHash = hash; created++;
+                  });
+              });
+            } else if (t.syncHash !== hash || t.calendarEventId !== ev.id) {
+              chain = chain.then(function () {
+                return gcalFetch('/calendars/' + encodeURIComponent(calId) + '/events/' + encodeURIComponent(ev.id),
+                  { method: 'PATCH', body: gcalEventBody(t) })
+                  .then(function () {
+                    t.calendarEventId = ev.id; t.syncHash = hash; updated++;
+                  });
+              });
+            }
+            // ללא שינוי – לא פונים ל-API בכלל
+          } else if (ev) {
+            // בוצעה, אבד לה התאריך, או שאינה רלוונטית יותר
+            chain = chain.then(function () {
+              return gcalFetch('/calendars/' + encodeURIComponent(calId) + '/events/' + encodeURIComponent(ev.id),
+                { method: 'DELETE' }).then(function () {
+                  delete t.calendarEventId; delete t.syncHash; deleted++;
+                });
+            });
+          } else if (t.calendarEventId) {
+            delete t.calendarEventId; delete t.syncHash;
+          }
+        });
+
+        // אירועים של משימות שכבר לא קיימות
+        Object.keys(byTask).forEach(function (tid) {
+          if (!seen[tid]) orphans.push(byTask[tid]);
+        });
+        orphans.forEach(function (ev) {
+          chain = chain.then(function () {
+            return gcalFetch('/calendars/' + encodeURIComponent(calId) + '/events/' + encodeURIComponent(ev.id),
+              { method: 'DELETE' }).then(function () { deleted++; });
+          });
+        });
+
+        return chain;
+      })
+      .then(function () {
+        state.settings.calendarSyncedAt = Date.now();
+        save();
+        gcalBusy = false;
+        gcalMsg = created + ' נוספו, ' + updated + ' עודכנו, ' + deleted + ' נמחקו';
+        render();
+        toast('הסנכרון הושלם: ' + gcalMsg);
+      })
+      .catch(function (err) {
+        console.error(err);
+        gcalBusy = false;
+        gcalMsg = 'שגיאה: ' + (err && err.message ? err.message : 'הסנכרון נכשל');
+        render();
+        toast(gcalMsg);
+      });
+  }
+
   /* ---------- פעולות ---------- */
   function coll(name) { return state[name]; }
   function findItem(name, id) {
@@ -1710,6 +1996,7 @@ var SEED_CONTACTS = [
       state.contacts.push({ id: uid(), name: n, role: r, phone: p, notes: '' });
       save(); render(); toast('נוסף');
     }
+    else if (act === 'gcal-sync') gcalSync();
     else if (act === 'print-labels') printLabels();
     else if (act === 'settings') openSettings();
     else if (act === 'clear-search') {
