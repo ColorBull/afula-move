@@ -118,7 +118,7 @@ button.brand:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
 
 /* ---- Search bar ---- */
 .searchbar{
-  position:sticky;top:59px;z-index:38;
+  position:sticky;top:var(--topbar-h, 59px);z-index:38;
   display:flex;align-items:center;gap:8px;
   padding:8px 12px;background:var(--card);border-bottom:1px solid var(--line)
 }
@@ -152,7 +152,10 @@ button.brand:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
 @media (prefers-reduced-motion: reduce){.drawer{transition:none}}
 .drawer-head{
   display:flex;align-items:center;gap:8px;
-  padding:6px 8px 12px;margin-bottom:6px;border-bottom:1px solid var(--line)
+  /* אותו גובה בדיוק כמו הסרגל העליון, כדי ששתי הכותרות יתחילו ויסתיימו
+     באותו קו. הגובה נמדד ב-JS ונמסר כמשתנה. */
+  min-height:calc(var(--topbar-h, 58px) - 10px);
+  padding:0 8px;margin-bottom:8px;border-bottom:1px solid var(--line)
 }
 .drawer-head strong{font-size:15px}
 .nav-item{
@@ -302,27 +305,33 @@ label.f{display:flex;flex-direction:column;gap:5px;font-size:12px;color:var(--mu
 }
 
 /* ---- מספור וסדר עדיפות ---- */
+/* מספר העדיפות הוא גם ידית הגרירה: אותו מידע, פעולה אחת.
+   מיושר לשורה של תיבת הסימון ושל כותרת המשימה. */
 .rank{
-  display:flex;flex-direction:column;align-items:center;justify-content:flex-start;
-  gap:1px;flex:none;min-width:24px;padding-top:1px
+  flex:none;display:inline-flex;align-items:center;justify-content:center;
+  min-width:22px;height:22px;margin-top:2px;padding:0 4px;
+  border:0;background:transparent;border-radius:8px;
+  color:var(--muted);font:inherit;font-size:12.5px;font-weight:700;
+  font-variant-numeric:tabular-nums;
+  cursor:grab;touch-action:none;
+  -webkit-user-select:none;user-select:none
 }
-.rank b{
-  font-size:12.5px;font-weight:700;color:var(--muted);
-  font-variant-numeric:tabular-nums;line-height:1.3
-}
-.rank button{
-  border:0;background:transparent;color:var(--muted);cursor:pointer;
-  font-size:10px;line-height:1;padding:2px 5px;border-radius:6px
-}
-.rank button:hover:not(:disabled){background:var(--brand-soft);color:var(--brand-ink)}
-@media (prefers-color-scheme: dark){.rank button:hover:not(:disabled){color:var(--brand)}}
-.rank button:disabled{opacity:.22;cursor:default}
-.rank button:focus-visible{outline:2px solid var(--brand);outline-offset:-1px}
-.task.done .rank b{opacity:.5}
+.rank:hover{background:var(--brand-soft);color:var(--brand-ink)}
+.rank:active{cursor:grabbing}
+.rank:focus-visible{outline:2px solid var(--brand);outline-offset:1px}
+.rank.static{cursor:default;opacity:.5}
+.rank.static:hover{background:transparent;color:var(--muted)}
+
+
+
+@media (prefers-color-scheme: dark){}
+
+
+.task.done 
 /* במסך מגע שטח הלחיצה גדל מעט – אך לא מספיק כדי להגביה את השורה */
 @media (pointer: coarse){
-  .rank{min-width:26px}
-  .rank button{padding:4px 5px;font-size:11px}
+  
+  
 }
 
 /* ---- העברת משימה לשלב אחר ---- */
@@ -414,15 +423,17 @@ tfoot td{font-weight:700;border-bottom:0}
 
 /* ---- Drawer מוצמד בדסקטופ ---- */
 /* התפריט נשאר פתוח עד שסוגרים אותו, והתוכן נדחף הצידה כדי שיישאר לחיץ */
-@media(min-width:820px){
-  .topbar,.searchbar,.views{transition:margin-inline-start .22s ease}
-  body.drawer-pinned .topbar,
-  body.drawer-pinned .searchbar,
-  body.drawer-pinned .views{margin-inline-start:270px}
+@media(min-width:1024px){
+  /* התוכן נשאר ממורכז מול המסך בדיוק כמו כשהתפריט סגור. הוא רק מצטמצם
+     סימטרית משני הצדדים, ולכן הקצה שלו לא מגיע אל התפריט ושום דבר לא "קופץ"
+     לצד. 580 = רוחב התפריט בשני הצדדים ועוד מרווח נשימה. */
+  body.drawer-pinned .views{max-width:min(900px, calc(100vw - 580px))}
+  /* הסרגלים נשארים ברוחב מלא כדי שהרקע שלהם ימשיך לאורך המסך; רק התוכן
+     שלהם נדחף פנימה, ובראשם רק הכפתור שהיה נכנס מתחת לתפריט. הכותרת
+     ממוקמת אבסולוטית ולכן היא נשארת בדיוק במרכז המסך. */
+  body.drawer-pinned .topbar{padding-inline-start:284px}
+  body.drawer-pinned .searchbar{padding-inline-start:282px}
   body.drawer-pinned .drawer{box-shadow:none}
-}
-@media (prefers-reduced-motion: reduce){
-  .topbar,.searchbar,.views{transition:none}
 }
 
 /* ---- סרגל מיון וסינון ---- */
@@ -1460,19 +1471,14 @@ var SEED_CONTACTS = [
       var tManual = isManual('tasks');
       h += '<div data-drag-group data-drag-coll="tasks">';
 
-      // המספור והחצים פועלים על מה שמוצג בפועל, כך שהדירוג זמין גם
-      // כשמסננים. ההזזה מחליפה עם השכן הנראה, ולכן תמיד יש אפקט גלוי.
+      // המספור משקף את מה שמוצג בפועל, כך שהדירוג נשאר קריא גם כשמסננים.
       list.forEach(function (t, i) {
         var late = !t.done && t.due && t.due < todayISO();
         h += '<div class="task' + (t.done ? ' done' : '') + '" data-drag-item data-id="' + t.id + '">' +
-          grip(tManual) +
-          '<div class="rank">' +
-          (tManual ? '<button type="button" data-act="task-move" data-dir="up" data-id="' + t.id +
-          '" title="העלאה בעדיפות"' + (i === 0 ? ' disabled' : '') + '>▲</button>' : '') +
-          '<b>' + (i + 1) + '</b>' +
-          (tManual ? '<button type="button" data-act="task-move" data-dir="down" data-id="' + t.id +
-          '" title="הורדה בעדיפות"' + (i === list.length - 1 ? ' disabled' : '') + '>▼</button>' : '') +
-          '</div>' +
+          (tManual
+            ? '<button type="button" class="rank" data-grip title="גרירה לשינוי סדר העדיפות" ' +
+              'aria-label="גרירה לשינוי סדר העדיפות">' + (i + 1) + '</button>'
+            : '<span class="rank static">' + (i + 1) + '</span>') +
           '<input type="checkbox"' + (t.done ? ' checked' : '') + ' data-act="toggle" data-coll="tasks" data-id="' + t.id + '" data-field="done">' +
           '<div class="t"><input class="title" value="' + esc(t.title) + '" ' + bind('tasks', t.id, 'title') + '>' +
           '<div class="meta">' +
@@ -1874,7 +1880,9 @@ var SEED_CONTACTS = [
 
   function renderDrawer() {
     $('#drawer').innerHTML =
-      '<div class="drawer-head"><span style="font-size:20px">🏡</span><strong>ניהול מעבר דירה</strong></div>' +
+      '<div class="drawer-head">' +
+      (isDesktop() ? '' : '<span style="font-size:20px">🏡</span><strong>ניהול מעבר דירה</strong>') +
+      '</div>' +
       TABS.map(function (t) {
         var c = sectionCount(t.id);
         return '<button class="nav-item' + (t.id === view ? ' active' : '') + '" data-tab="' + t.id + '">' +
@@ -1888,7 +1896,14 @@ var SEED_CONTACTS = [
   // בדסקטופ התפריט נשאר נעוץ עד שסוגרים אותו, והמסך נשאר פעיל לצידו.
   // בנייד הוא שכבה מעל התוכן ולכן נסגר אחרי בחירת מסך.
   var LS_DRAWER = 'afula_drawer_pinned';
-  function isDesktop() { return window.matchMedia('(min-width: 820px)').matches; }
+  function isDesktop() { return window.matchMedia('(min-width: 1024px)').matches; }
+
+  // גובה הסרגל העליון נמדד ונמסר ל-CSS, כדי שראש התפריט יתחיל בדיוק
+  // באותו קו שבו מסתיים הסרגל הראשי בכל גודל מסך ובכל גופן.
+  function syncTopbarHeight() {
+    var h = $('.topbar').getBoundingClientRect().height;
+    document.documentElement.style.setProperty('--topbar-h', Math.round(h) + 'px');
+  }
 
   function setDrawer(open) {
     var d = $('#drawer'), s = $('#scrim'), b = $('#btnMenu');
@@ -2365,34 +2380,6 @@ var SEED_CONTACTS = [
   }
 
   /* ---------- פעולות ---------- */
-  // אותם תנאי סינון שמסך המשימות מציג. חשוב שההזזה תעבוד על אותה
-  // רשימה שהמשתמש רואה, אחרת החלפה עם פריט מוסתר נראית כאילו כלום לא קרה.
-  function taskVisible(t) {
-    if (viewTasks._st === 'open' && t.done) return false;
-    if (viewTasks._st === 'done' && !t.done) return false;
-    return hit(t.title);
-  }
-
-  // הזזת משימה בסדר העדיפות, בתוך השלב שלה בלבד. הסדר נקבע לפי מיקום
-  // במערך, ולכן מספיק להחליף מקומות עם השכן הנראה מאותו שלב.
-  function moveTask(id, dir) {
-    var t = findItem('tasks', id);
-    if (!t) return;
-    var idxs = [];
-    state.tasks.forEach(function (x, i) {
-      if (x.phase === t.phase && taskVisible(x)) idxs.push(i);
-    });
-    var pos = idxs.indexOf(state.tasks.indexOf(t));
-    var target = pos + dir;
-    if (pos < 0 || target < 0 || target >= idxs.length) return;
-    var a = idxs[pos], b = idxs[target];
-    var tmp = state.tasks[a];
-    state.tasks[a] = state.tasks[b];
-    state.tasks[b] = tmp;
-    save();
-    render();
-  }
-
   function coll(name) { return state[name]; }
   function findItem(name, id) {
     var a = coll(name);
@@ -2522,7 +2509,6 @@ var SEED_CONTACTS = [
       state.contacts.push({ id: uid(), name: n, role: r, phone: p, notes: '' });
       save(); render(); toast('נוסף');
     }
-    else if (act === 'task-move') moveTask(el.dataset.id, el.dataset.dir === 'up' ? -1 : 1);
     else if (act === 'gcal-sync') gcalSync();
     else if (act === 'gcal-pull') gcalPull();
     else if (act === 'print-labels') printLabels();
@@ -2543,6 +2529,8 @@ var SEED_CONTACTS = [
   document.addEventListener('pointercancel', dragEnd);
   // מעבר בין נייד לדסקטופ משנה את התנהגות התפריט
   window.addEventListener('resize', function () {
+    syncTopbarHeight();
+    renderDrawer();
     if (drawerIsOpen()) setDrawer(true);
     else document.body.classList.remove('drawer-pinned');
   });
@@ -2782,6 +2770,7 @@ var SEED_CONTACTS = [
   /* ---------- אתחול ---------- */
   state = loadLocal();
   render();
+  syncTopbarHeight();
   // בדסקטופ התפריט חוזר למצב שבו נשאר. בנייד הוא תמיד מתחיל סגור.
   if (isDesktop() && safeLS.get(LS_DRAWER) === '1') setDrawer(true);
   initCloud();
