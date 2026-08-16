@@ -283,6 +283,30 @@ label.f{display:flex;flex-direction:column;gap:5px;font-size:12px;color:var(--mu
 .task .meta input[type=date]{border:0;background:transparent;color:var(--muted);font-size:12px;padding:0;width:auto}
 .task .late{color:var(--danger);font-size:11.5px;font-weight:600}
 
+/* ---- מספור וסדר עדיפות ---- */
+.rank{
+  display:flex;flex-direction:column;align-items:center;justify-content:flex-start;
+  gap:1px;flex:none;min-width:24px;padding-top:1px
+}
+.rank b{
+  font-size:12.5px;font-weight:700;color:var(--muted);
+  font-variant-numeric:tabular-nums;line-height:1.3
+}
+.rank button{
+  border:0;background:transparent;color:var(--muted);cursor:pointer;
+  font-size:10px;line-height:1;padding:2px 5px;border-radius:6px
+}
+.rank button:hover:not(:disabled){background:var(--brand-soft);color:var(--brand-ink)}
+@media (prefers-color-scheme: dark){.rank button:hover:not(:disabled){color:var(--brand)}}
+.rank button:disabled{opacity:.22;cursor:default}
+.rank button:focus-visible{outline:2px solid var(--brand);outline-offset:-1px}
+.task.done .rank b{opacity:.5}
+/* במסך מגע החצים קטנים מדי לאצבע, ולכן שטח הלחיצה גדל – רק שם */
+@media (pointer: coarse){
+  .rank{min-width:32px}
+  .rank button{padding:8px 10px;font-size:11px}
+}
+
 /* ---- העברת משימה לשלב אחר ---- */
 .phase-pick{position:relative;display:inline-flex;align-items:center;flex:none}
 .phase-pick i{
@@ -1254,9 +1278,24 @@ var SEED_CONTACTS = [
         '<span class="spacer"></span></div>' +
         '<div class="bar" style="margin-bottom:8px"><i style="width:' + pct(done, all.length) + '%"></i></div>';
       if (!list.length) h += '<div class="empty">אין משימות בשלב הזה</div>';
+
+      // מספור עדיפות פנימי לכל שלב. החצים זמינים רק כשהרשימה מוצגת
+      // במלואה – אחרת החלפה עם פריט מוסתר הייתה נראית כאילו כלום לא קרה.
+      var rank = {};
+      all.forEach(function (x, i) { rank[x.id] = i; });
+      var canReorder = !query() && !viewTasks._st;
+
       list.forEach(function (t) {
         var late = !t.done && t.due && t.due < todayISO();
+        var i = rank[t.id];
         h += '<div class="task' + (t.done ? ' done' : '') + '">' +
+          '<div class="rank">' +
+          (canReorder ? '<button type="button" data-act="task-move" data-dir="up" data-id="' + t.id +
+            '" title="העלאה בעדיפות"' + (i === 0 ? ' disabled' : '') + '>▲</button>' : '') +
+          '<b>' + (i + 1) + '</b>' +
+          (canReorder ? '<button type="button" data-act="task-move" data-dir="down" data-id="' + t.id +
+            '" title="הורדה בעדיפות"' + (i === all.length - 1 ? ' disabled' : '') + '>▼</button>' : '') +
+          '</div>' +
           '<input type="checkbox"' + (t.done ? ' checked' : '') + ' data-act="toggle" data-coll="tasks" data-id="' + t.id + '" data-field="done">' +
           '<div class="t"><input class="title" value="' + esc(t.title) + '" ' + bind('tasks', t.id, 'title') + '>' +
           '<div class="meta">' +
@@ -1869,6 +1908,24 @@ var SEED_CONTACTS = [
   }
 
   /* ---------- פעולות ---------- */
+  // הזזת משימה בסדר העדיפות, בתוך השלב שלה בלבד. הסדר נקבע לפי מיקום
+  // במערך, ולכן מספיק להחליף בין שתי המשימות השכנות מאותו שלב.
+  function moveTask(id, dir) {
+    var t = findItem('tasks', id);
+    if (!t) return;
+    var idxs = [];
+    state.tasks.forEach(function (x, i) { if (x.phase === t.phase) idxs.push(i); });
+    var pos = idxs.indexOf(state.tasks.indexOf(t));
+    var target = pos + dir;
+    if (pos < 0 || target < 0 || target >= idxs.length) return;
+    var a = idxs[pos], b = idxs[target];
+    var tmp = state.tasks[a];
+    state.tasks[a] = state.tasks[b];
+    state.tasks[b] = tmp;
+    save();
+    render();
+  }
+
   function coll(name) { return state[name]; }
   function findItem(name, id) {
     var a = coll(name);
@@ -1996,6 +2053,7 @@ var SEED_CONTACTS = [
       state.contacts.push({ id: uid(), name: n, role: r, phone: p, notes: '' });
       save(); render(); toast('נוסף');
     }
+    else if (act === 'task-move') moveTask(el.dataset.id, el.dataset.dir === 'up' ? -1 : 1);
     else if (act === 'gcal-sync') gcalSync();
     else if (act === 'print-labels') printLabels();
     else if (act === 'settings') openSettings();
