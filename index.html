@@ -289,9 +289,12 @@ label.f{display:flex;flex-direction:column;gap:5px;font-size:12px;color:var(--mu
   .task{gap:7px;padding:8px 2px}
   .task .t input.title{font-size:14.5px}
   .task input[type=checkbox]{width:17px;height:17px;margin-top:3px}
-  .task .meta{gap:5px;margin-top:5px}
+  .task .meta{gap:4px;margin-top:5px}
   .task .meta .small{display:none}          /* התווית "יעד:" מיותרת ליד שדה תאריך */
-  .task .meta input[type=date]{font-size:11.5px}
+  /* שדה תאריך בכרום נוטה לרוחב מינימלי משלו ודוחף את השורה לשבירה.
+     flex עם min-width:0 מרשה לו להתכווץ למה שנשאר, כך שהשורה התחתונה
+     נשארת שורה אחת גם אחרי שידית הגרירה תפסה מקום */
+  .task .meta input[type=date]{font-size:11.5px;flex:1 1 0;min-width:0}
   .task .late{font-size:11px}
   .x{font-size:15px;padding:3px 5px}
   .shopmeta{gap:5px}
@@ -318,8 +321,8 @@ label.f{display:flex;flex-direction:column;gap:5px;font-size:12px;color:var(--mu
 .task.done .rank b{opacity:.5}
 /* במסך מגע שטח הלחיצה גדל מעט – אך לא מספיק כדי להגביה את השורה */
 @media (pointer: coarse){
-  .rank{min-width:30px}
-  .rank button{padding:4px 9px;font-size:11px}
+  .rank{min-width:26px}
+  .rank button{padding:4px 5px;font-size:11px}
 }
 
 /* ---- העברת משימה לשלב אחר ---- */
@@ -408,6 +411,59 @@ tfoot td{font-weight:700;border-bottom:0}
   padding:10px 16px;border-radius:99px;font-size:13.5px;box-shadow:var(--shadow)
 }
 .empty{text-align:center;color:var(--muted);padding:22px 10px;font-size:13.5px}
+
+/* ---- Drawer מוצמד בדסקטופ ---- */
+/* התפריט נשאר פתוח עד שסוגרים אותו, והתוכן נדחף הצידה כדי שיישאר לחיץ */
+@media(min-width:820px){
+  .topbar,.searchbar,.views{transition:margin-inline-start .22s ease}
+  body.drawer-pinned .topbar,
+  body.drawer-pinned .searchbar,
+  body.drawer-pinned .views{margin-inline-start:270px}
+  body.drawer-pinned .drawer{box-shadow:none}
+}
+@media (prefers-reduced-motion: reduce){
+  .topbar,.searchbar,.views{transition:none}
+}
+
+/* ---- סרגל מיון וסינון ---- */
+.toolbar{padding:10px 12px}
+.toolbar .row{gap:8px}
+.toolbar .f{flex:1 1 150px;min-width:0;font-size:12px;color:var(--muted)}
+.toolbar select{width:100%}
+@media(max-width:480px){
+  .toolbar{padding:8px 10px}
+  .toolbar .f{flex:1 1 46%;font-size:11.5px}
+  .toolbar select{font-size:13px;padding:6px 8px}
+}
+
+/* ---- ידית גרירה ---- */
+.grip{
+  flex:none;align-self:center;
+  border:0;background:transparent;color:var(--muted);
+  font-size:16px;line-height:1;padding:6px 3px;margin-inline-start:-2px;
+  cursor:grab;border-radius:8px;
+  touch-action:none;              /* בלי זה הדפדפן גולל במקום לגרור */
+  -webkit-user-select:none;user-select:none
+}
+.grip:hover{background:var(--card-2);color:var(--text)}
+.grip:active{cursor:grabbing}
+.card > .grip{position:absolute;inset-block-start:9px;inset-inline-start:8px}
+.card[data-drag-item]{position:relative;padding-inline-start:38px}
+.box > .grip{align-self:flex-start;margin-top:2px}
+@media(max-width:480px){.grip{font-size:15px;padding:8px 2px}}
+
+/* פריט בזמן גרירה */
+[data-drag-item].dragging{
+  opacity:.55;
+  background:var(--card-2);
+  border-radius:12px;
+  box-shadow:0 6px 18px rgba(15,23,42,.16)
+}
+body.dragging-active{
+  -webkit-user-select:none;user-select:none;
+  cursor:grabbing
+}
+body.dragging-active .grip{cursor:grabbing}
 
 </style>
 </head>
@@ -1079,6 +1135,99 @@ var SEED_CONTACTS = [
     }
     return false;
   }
+  /* ---------- מיון וסינון לכל מסך ---------- */
+  // 'manual' הוא הסדר השמור, וזה גם המצב היחיד שבו גרירה אפשרית.
+  var SORTS = {
+    tasks:    [['manual','סדר ידני'],['az','לפי א-ת'],['due','לפי תאריך יעד'],['open','שלא בוצעו קודם']],
+    shopping: [['manual','סדר ידני'],['az','לפי א-ת'],['prio','לפי עדיפות'],['estAsc','משוער: מהזול ליקר'],['estDesc','משוער: מהיקר לזול'],['costDesc','שולם: מהגבוה לנמוך']],
+    boxes:    [['manual','סדר ידני'],['num','לפי מספר ארגז'],['room','לפי חדר יעד'],['status','לפי סטטוס']],
+    budget:   [['manual','סדר ידני'],['az','לפי א-ת'],['plannedDesc','מתוכנן: מהגבוה לנמוך'],['actualDesc','בפועל: מהגבוה לנמוך'],['unpaid','שלא שולמו קודם']],
+    services: [['manual','סדר ידני'],['az','לפי א-ת'],['status','לפי סטטוס'],['provider','לפי ספק']],
+    docs:     [['manual','סדר ידני'],['az','לפי א-ת'],['type','לפי סוג'],['date','לפי תאריך']],
+    contacts: [['manual','סדר ידני'],['az','לפי שם'],['role','לפי תפקיד']]
+  };
+  var sortBy = {};   // view -> sort key
+  var filterBy = {}; // view -> {field: value}
+
+  function setFilter(v, field, val) {
+    filterBy[v] = filterBy[v] || {};
+    filterBy[v][field] = val;
+  }
+  function uniq(a) {
+    var seen = {}, out = [];
+    a.forEach(function (x) { if (x && !seen[x]) { seen[x] = 1; out.push(x); } });
+    return out.sort(function (p, q) { return String(p).localeCompare(String(q), 'he'); });
+  }
+  function sortOf(v) { return sortBy[v] || 'manual'; }
+  function isManual(v) { return sortOf(v) === 'manual'; }
+  function filt(v, key) { return (filterBy[v] || {})[key] || ''; }
+
+  var cmpText = function (a, b) { return String(a || '').localeCompare(String(b || ''), 'he'); };
+  var num = function (x) { return Number(x) || 0; };
+
+  function sortList(v, list) {
+    var s = sortOf(v);
+    if (s === 'manual') return list;
+    var out = list.slice();
+    var by = {
+      az: function (a, b) { return cmpText(a.title || a.name || a.cat || a.contents, b.title || b.name || b.cat || b.contents); },
+      due: function (a, b) { return (a.due || '9999').localeCompare(b.due || '9999'); },
+      open: function (a, b) { return (a.done ? 1 : 0) - (b.done ? 1 : 0); },
+      prio: function (a, b) { var o = { must: 0, soon: 1, later: 2 }; return o[a.prio] - o[b.prio]; },
+      estAsc: function (a, b) { return num(a.est) - num(b.est); },
+      estDesc: function (a, b) { return num(b.est) - num(a.est); },
+      costDesc: function (a, b) { return num(b.cost) - num(a.cost); },
+      num: function (a, b) { return num(a.num) - num(b.num); },
+      room: function (a, b) { return cmpText(a.to, b.to); },
+      status: function (a, b) { return cmpText(a.status, b.status); },
+      plannedDesc: function (a, b) { return num(b.planned) - num(a.planned); },
+      actualDesc: function (a, b) { return num(b.actual) - num(a.actual); },
+      unpaid: function (a, b) { return (a.paid ? 1 : 0) - (b.paid ? 1 : 0); },
+      provider: function (a, b) { return cmpText(a.provider, b.provider); },
+      type: function (a, b) { return cmpText(a.type, b.type); },
+      date: function (a, b) { return (a.date || '9999').localeCompare(b.date || '9999'); },
+      role: function (a, b) { return cmpText(a.role, b.role); }
+    }[s];
+    return by ? out.sort(by) : out;
+  }
+
+  // סרגל מיון/סינון אחיד. selects = [[id, label, currentValue, [[val,label]…]]…]
+  function toolbar(v, selects) {
+    var h = '<div class="card toolbar"><div class="row">' +
+      '<label class="f">מיון<select data-sortfor="' + v + '">' +
+      SORTS[v].map(function (o) {
+        return '<option value="' + o[0] + '"' + (sortOf(v) === o[0] ? ' selected' : '') + '>' + esc(o[1]) + '</option>';
+      }).join('') + '</select></label>';
+    (selects || []).forEach(function (s) {
+      h += '<label class="f">' + esc(s[1]) + '<select data-filterfor="' + v + '" data-field="' + s[0] + '">' +
+        s[3].map(function (o) {
+          return '<option value="' + esc(o[0]) + '"' + (s[2] === o[0] ? ' selected' : '') + '>' + esc(o[1]) + '</option>';
+        }).join('') + '</select></label>';
+    });
+    h += '</div>' +
+      (isManual(v) ? '' : '<div class="small muted" style="margin-top:8px">במיון הזה לא ניתן לגרור. חוזרים ל"סדר ידני" כדי לשנות סדר.</div>') +
+      '</div>';
+    return h;
+  }
+
+  function taskDueOk(t) {
+    var f = filt('tasks', 'due');
+    if (!f) return true;
+    if (f === 'has') return !!t.due;
+    if (f === 'none') return !t.due;
+    if (!t.due) return false;
+    var today = new Date(); today.setHours(0, 0, 0, 0);
+    var d = new Date(t.due + 'T00:00:00');
+    if (f === 'late') return d < today && !t.done;
+    if (f === 'week') return d >= today && (d - today) <= 7 * 86400000;
+    return true;
+  }
+  function taskCalOk(t) {
+    var f = filt('tasks', 'cal');
+    if (!f) return true;
+    return f === '1' ? !!t.calendarEventId : !t.calendarEventId;
+  }
+
   function searchNote(shown, total, noun) {
     if (!query()) return '';
     return '<div class="search-note"><span>🔍 ' +
@@ -1259,6 +1408,8 @@ var SEED_CONTACTS = [
         '<div class="row">' +
         '<button class="btn primary" data-act="gcal-sync"' + (gcalBusy ? ' disabled' : '') + '>' +
         (gcalBusy ? '⏳ מסנכרן…' : '🗓️ סנכרן ללוח שנה') + '</button>' +
+        '<button class="btn" data-act="gcal-pull"' + (gcalBusy ? ' disabled' : '') + '>' +
+        '🗓️ סנכרן מלוח שנה</button>' +
         (last && !gcalBusy ? '<span class="small muted">עודכן לאחרונה: ' +
           new Intl.DateTimeFormat('he-IL', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(last)) +
           '</span>' : '') +
@@ -1278,6 +1429,12 @@ var SEED_CONTACTS = [
       '<option value="done"' + (viewTasks._st === 'done' ? ' selected' : '') + '>רק שבוצעו</option>' +
       '</select></label></div></div>';
 
+    h += toolbar('tasks', [
+      ['due', 'תאריך יעד', filt('tasks', 'due'),
+        [['', 'הכל'], ['has', 'עם תאריך'], ['none', 'ללא תאריך'], ['late', 'באיחור'], ['week', 'בשבוע הקרוב']]],
+      ['cal', 'לוח שנה', filt('tasks', 'cal'), [['', 'הכל'], ['1', 'מסונכרנות ללוח'], ['0', 'לא בלוח']]]
+    ]);
+
     var phases = PHASES.filter(function (p) { return !viewTasks._ph || p.id === viewTasks._ph; });
     var shown = 0, total = state.tasks.length;
 
@@ -1286,29 +1443,35 @@ var SEED_CONTACTS = [
       var list = all.filter(function (t) {
         if (viewTasks._st === 'open' && t.done) return false;
         if (viewTasks._st === 'done' && !t.done) return false;
+        if (!taskDueOk(t)) return false;
+        if (!taskCalOk(t)) return false;
         return hit(t.title);
       });
       shown += list.length;
       // בסינון פעיל אין טעם להציג שלבים ריקים
-      if (!list.length && (query() || viewTasks._st)) return;
+      if (!list.length && (query() || viewTasks._st || filt('tasks', 'due') || filt('tasks', 'cal'))) return;
       var done = all.filter(function (t) { return t.done; }).length;
       h += '<div class="card phase"><div class="phase-head"><h3>' + esc(p.label) + '</h3>' +
         '<span class="cnt">' + done + '/' + all.length + ' · ' + esc(p.hint) + '</span>' +
         '<span class="spacer"></span></div>' +
         '<div class="bar" style="margin-bottom:8px"><i style="width:' + pct(done, all.length) + '%"></i></div>';
       if (!list.length) h += '<div class="empty">אין משימות בשלב הזה</div>';
+      list = sortList('tasks', list);
+      var tManual = isManual('tasks');
+      h += '<div data-drag-group data-drag-coll="tasks">';
 
       // המספור והחצים פועלים על מה שמוצג בפועל, כך שהדירוג זמין גם
       // כשמסננים. ההזזה מחליפה עם השכן הנראה, ולכן תמיד יש אפקט גלוי.
       list.forEach(function (t, i) {
         var late = !t.done && t.due && t.due < todayISO();
-        h += '<div class="task' + (t.done ? ' done' : '') + '">' +
+        h += '<div class="task' + (t.done ? ' done' : '') + '" data-drag-item data-id="' + t.id + '">' +
+          grip(tManual) +
           '<div class="rank">' +
-          '<button type="button" data-act="task-move" data-dir="up" data-id="' + t.id +
-          '" title="העלאה בעדיפות"' + (i === 0 ? ' disabled' : '') + '>▲</button>' +
+          (tManual ? '<button type="button" data-act="task-move" data-dir="up" data-id="' + t.id +
+          '" title="העלאה בעדיפות"' + (i === 0 ? ' disabled' : '') + '>▲</button>' : '') +
           '<b>' + (i + 1) + '</b>' +
-          '<button type="button" data-act="task-move" data-dir="down" data-id="' + t.id +
-          '" title="הורדה בעדיפות"' + (i === list.length - 1 ? ' disabled' : '') + '>▼</button>' +
+          (tManual ? '<button type="button" data-act="task-move" data-dir="down" data-id="' + t.id +
+          '" title="הורדה בעדיפות"' + (i === list.length - 1 ? ' disabled' : '') + '>▼</button>' : '') +
           '</div>' +
           '<input type="checkbox"' + (t.done ? ' checked' : '') + ' data-act="toggle" data-coll="tasks" data-id="' + t.id + '" data-field="done">' +
           '<div class="t"><input class="title" value="' + esc(t.title) + '" ' + bind('tasks', t.id, 'title') + '>' +
@@ -1322,7 +1485,7 @@ var SEED_CONTACTS = [
           (late ? '<span class="late">באיחור</span>' : '') + '</div></div>' +
           '<button class="x" data-act="del" data-coll="tasks" data-id="' + t.id + '" title="מחיקה">✕</button></div>';
       });
-      h += '</div>';
+      h += '</div></div>';
     });
 
     if (!shown) h += '<div class="card"><div class="empty">לא נמצאו משימות מתאימות</div></div>';
@@ -1338,23 +1501,33 @@ var SEED_CONTACTS = [
       '<button class="btn primary" data-act="add-box">הוסף ארגז</button></div>' +
       '<div class="small muted" style="margin-top:6px">חדר מקור ← חדר יעד בדירה החדשה</div></div>';
 
+    h += toolbar('boxes', [
+      ['status', 'סטטוס', filt('boxes', 'status'),
+        [['', 'כל הסטטוסים']].concat(BOX_STATUS.map(function (s) { return [s.id, s.label]; }))],
+      ['to', 'חדר יעד', filt('boxes', 'to'),
+        [['', 'כל החדרים']].concat(ROOMS.map(function (r) { return [r, r]; }))],
+      ['fragile', 'שביר', filt('boxes', 'fragile'), [['', 'הכל'], ['1', 'שבירים בלבד']]]
+    ]);
+
     h += '<div class="card"><h2>ארגזים <span class="sub">' + b.packed + '/' + b.total + ' ארוזים</span></h2>' +
       '<div class="row" style="margin-bottom:10px">' +
-      '<select id="boxFilter" style="flex:1 1 130px"><option value="">כל הסטטוסים</option>' +
-      opts(BOX_STATUS, viewBoxes._f || '', 'id', 'label') + '</select>' +
       '<button class="btn sm" data-act="print-labels">🖨️ תוויות</button></div>';
 
-    var f = viewBoxes._f || '';
     var list = state.boxes.filter(function (x) {
-      if (f && x.status !== f) return false;
+      if (filt('boxes', 'status') && x.status !== filt('boxes', 'status')) return false;
+      if (filt('boxes', 'to') && x.to !== filt('boxes', 'to')) return false;
+      if (filt('boxes', 'fragile') && !x.fragile) return false;
       return hit(x.contents, x.num, x.from, x.to);
     });
+    list = sortList('boxes', list);
+    var bManual = isManual('boxes');
 
     if (!state.boxes.length) h += '<div class="empty">עדיין אין ארגזים. מוסיפים ארגז ומדביקים עליו את המספר.</div>';
     else if (!list.length) h += '<div class="empty">לא נמצאו ארגזים מתאימים</div>';
-    else h += '<div class="grid">' + list.map(function (x) {
+    else h += '<div class="grid" data-drag-group data-drag-coll="boxes">' + list.map(function (x) {
       var st = BOX_STATUS.filter(function (s) { return s.id === x.status; })[0];
-      return '<div class="box"><div class="num">' + x.num + '</div><div class="body">' +
+      return '<div class="box" data-drag-item data-id="' + x.id + '">' + grip(bManual) +
+        '<div class="num">' + x.num + '</div><div class="body">' +
         '<input value="' + esc(x.contents) + '" placeholder="תוכן הארגז" ' + bind('boxes', x.id, 'contents') + '>' +
         '<div class="line">' +
         '<select ' + bind('boxes', x.id, 'from') + ' style="flex:1">' + opts(ROOMS, x.from) + '</select>' +
@@ -1388,21 +1561,33 @@ var SEED_CONTACTS = [
       '<select id="nsPrio" style="flex:1 1 120px">' + opts(SHOP_PRIO, 'soon', 'id', 'label') + '</select>' +
       '<button class="btn primary" data-act="add-shop">הוסף</button></div></div>';
 
-    h += '<div class="card"><div class="row">' +
-      '<select id="shopPrio" style="flex:1 1 150px"><option value="">כל העדיפויות</option>' +
-      opts(SHOP_PRIO, viewShopping._p || '', 'id', 'label') + '</select>' +
-      '<label class="row small" style="gap:6px;flex:none"><input type="checkbox" id="shopHide"' +
-      (viewShopping._hide ? ' checked' : '') + '> להסתיר מה שנקנה</label></div></div>';
+    h += toolbar('shopping', [
+      ['prio', 'עדיפות', filt('shopping', 'prio'),
+        [['', 'כל העדיפויות']].concat(SHOP_PRIO.map(function (x) { return [x.id, x.label]; }))],
+      ['area', 'קטגוריה', filt('shopping', 'area'),
+        [['', 'כל הקטגוריות']].concat(state.shopAreas.map(function (a) { return [a, a]; }))],
+      ['bought', 'מצב', filt('shopping', 'bought'),
+        [['', 'הכל'], ['0', 'שטרם נקנו'], ['1', 'שכבר נקנו']]],
+      ['store', 'חנות', filt('shopping', 'store'),
+        [['', 'כל החנויות']].concat(uniq(state.shopping.map(function (s) { return (s.store || '').trim(); }))
+          .map(function (v) { return [v, v]; }))]
+    ]);
 
     var shopShown = 0;
     state.shopAreas.forEach(function (area) {
       var all = state.shopping.filter(function (s) { return s.area === area; });
       if (!all.length) return;
+      if (filt('shopping', 'area') && area !== filt('shopping', 'area')) return;
       var list = all.filter(function (s) {
-        if (viewShopping._p && s.prio !== viewShopping._p) return false;
-        if (viewShopping._hide && s.bought) return false;
+        if (filt('shopping', 'prio') && s.prio !== filt('shopping', 'prio')) return false;
+        var bf = filt('shopping', 'bought');
+        if (bf === '1' && !s.bought) return false;
+        if (bf === '0' && s.bought) return false;
+        if (filt('shopping', 'store') && (s.store || '').trim() !== filt('shopping', 'store')) return false;
         return hit(s.name, s.store, s.area);
       });
+      list = sortList('shopping', list);
+      var sManual = isManual('shopping');
       shopShown += list.length;
       if (!list.length && query()) return;
       var got = all.filter(function (s) { return s.bought; }).length;
@@ -1410,9 +1595,11 @@ var SEED_CONTACTS = [
         '<span class="cnt">' + got + '/' + all.length + '</span><span class="spacer"></span></div>' +
         '<div class="bar" style="margin-bottom:8px"><i style="width:' + pct(got, all.length) + '%"></i></div>';
       if (!list.length) h += '<div class="empty">אין פריטים מתאימים לסינון</div>';
+      h += '<div data-drag-group data-drag-coll="shopping">';
       list.forEach(function (s) {
         var pr = SHOP_PRIO.filter(function (p) { return p.id === s.prio; })[0];
-        h += '<div class="task' + (s.bought ? ' done' : '') + '">' +
+        h += '<div class="task' + (s.bought ? ' done' : '') + '" data-drag-item data-id="' + s.id + '">' +
+          grip(sManual) +
           '<input type="checkbox"' + (s.bought ? ' checked' : '') + ' data-act="toggle" data-coll="shopping" data-id="' + s.id + '" data-field="bought">' +
           '<div class="t"><input class="title" value="' + esc(s.name) + '" ' + bind('shopping', s.id, 'name') + '>' +
           '<div class="shopmeta">' +
@@ -1427,7 +1614,7 @@ var SEED_CONTACTS = [
           '<button class="x" data-act="del" data-coll="shopping" data-id="' + s.id + '" title="מחיקה">✕</button></div>';
         void pr;
       });
-      h += '</div>';
+      h += '</div></div>';
     });
     if (!shopShown) h += '<div class="card"><div class="empty">לא נמצאו פריטים מתאימים</div></div>';
 
@@ -1450,10 +1637,25 @@ var SEED_CONTACTS = [
       '<div class="small muted">מצלמים בטלפון → התמונה נשמרת בגוגל דרייב או בגוגל תמונות → מדביקים כאן את הקישור. ' +
       'כך כל המספרים והצילומים החשובים במקום אחד, בכל המכשירים.</div></div>';
 
-    var docList = state.docs.filter(function (d) { return hit(d.title, d.value, d.notes, d.link); });
+    h += toolbar('docs', [
+      ['type', 'סוג', filt('docs', 'type'),
+        [['', 'כל הסוגים']].concat(DOC_TYPES.map(function (x) { return [x.id, x.label]; }))],
+      ['link', 'קישור', filt('docs', 'link'), [['', 'הכל'], ['1', 'עם קישור'], ['0', 'ללא קישור']]]
+    ]);
+
+    var docList = state.docs.filter(function (d) {
+      if (filt('docs', 'type') && d.type !== filt('docs', 'type')) return false;
+      var lf = filt('docs', 'link');
+      if (lf === '1' && !d.link) return false;
+      if (lf === '0' && d.link) return false;
+      return hit(d.title, d.value, d.notes, d.link);
+    });
+    docList = sortList('docs', docList);
+    var dcManual = isManual('docs');
+    h += '<div data-drag-group data-drag-coll="docs">';
     docList.forEach(function (d) {
       var tp = DOC_TYPES.filter(function (x) { return x.id === d.type; })[0];
-      h += '<div class="card"><h2>' + esc(d.title || 'ללא שם') +
+      h += '<div class="card" data-drag-item data-id="' + d.id + '">' + grip(dcManual) + '<h2>' + esc(d.title || 'ללא שם') +
         '<span class="tag">' + esc(tp ? tp.label : '') + '</span></h2>' +
         '<div class="row">' +
         '<label class="f">כותרת<input value="' + esc(d.title || '') + '" ' + bind('docs', d.id, 'title') + '></label>' +
@@ -1470,6 +1672,7 @@ var SEED_CONTACTS = [
         '<span class="spacer"></span>' +
         '<button class="x" data-act="del" data-coll="docs" data-id="' + d.id + '">✕ מחיקה</button></div></div>';
     });
+    h += '</div>';
     if (!docList.length) h += '<div class="card"><div class="empty">לא נמצאו רשומות מתאימות</div></div>';
     h += '<div class="card"><button class="btn" data-act="add-doc">➕ רשומה חדשה</button></div>';
     return searchNote(docList.length, state.docs.length, 'רשומות') + h;
@@ -1487,12 +1690,24 @@ var SEED_CONTACTS = [
         bg.planned ? '✅ בתוך התקציב (' + nis(bg.planned - bg.actual) + ' פנוי)' : 'כדאי למלא סכומים מתוכננים') +
       '</div></div>';
 
-    var bRows = state.budget.filter(function (r) { return hit(r.cat, r.note); });
+    h += toolbar('budget', [
+      ['paid', 'תשלום', filt('budget', 'paid'), [['', 'הכל'], ['0', 'שטרם שולמו'], ['1', 'ששולמו']]],
+      ['over', 'חריגה', filt('budget', 'over'), [['', 'הכל'], ['1', 'בחריגה מהמתוכנן']]]
+    ]);
+
+    var bRows = state.budget.filter(function (r) {
+      var pf = filt('budget', 'paid');
+      if (pf === '1' && !r.paid) return false;
+      if (pf === '0' && r.paid) return false;
+      if (filt('budget', 'over') && !(num(r.actual) > num(r.planned))) return false;
+      return hit(r.cat, r.note);
+    });
     var secOpts = state.budgetSections.map(function (s) { return { id: s.id, label: s.name }; });
+    var buManual = isManual('budget');
 
     state.budgetSections.forEach(function (sec) {
-      var rows = bRows.filter(function (r) { return r.section === sec.id; });
-      if (!rows.length && query()) return;
+      var rows = sortList('budget', bRows.filter(function (r) { return r.section === sec.id; }));
+      if (!rows.length && (query() || filt('budget', 'paid') || filt('budget', 'over'))) return;
       var st = sectionStats(sec.id);
 
       h += '<div class="card"><h2>' + esc(sec.name) +
@@ -1501,10 +1716,12 @@ var SEED_CONTACTS = [
         '';
 
       if (!rows.length) h += '<div class="empty">אין סעיפים בקטגוריה הזו</div>';
+      h += '<div data-drag-group data-drag-coll="budget">';
       // אותו פריסת כרטיס כמו במשימות ובקניות: שם הסעיף גדול ובולט,
       // והשדות הקטנים מתחתיו נשברים לשורות במסך צר במקום להיחתך
       rows.forEach(function (r) {
-        h += '<div class="task' + (r.paid ? ' done' : '') + '">' +
+        h += '<div class="task' + (r.paid ? ' done' : '') + '" data-drag-item data-id="' + r.id + '">' +
+          grip(buManual) +
           '<input type="checkbox"' + (r.paid ? ' checked' : '') +
           ' title="שולם" data-act="toggle" data-coll="budget" data-id="' + r.id + '" data-field="paid">' +
           '<div class="t"><input class="title" value="' + esc(r.cat) + '" placeholder="שם הסעיף" ' +
@@ -1522,7 +1739,7 @@ var SEED_CONTACTS = [
           '<button class="x" data-act="del" data-coll="budget" data-id="' + r.id + '" title="מחיקה">✕</button></div>';
       });
 
-      h += '<div class="sectotal"><span>סה"כ</span><span class="spacer"></span>' +
+      h += '</div><div class="sectotal"><span>סה"כ</span><span class="spacer"></span>' +
         '<span class="small muted">מתוכנן</span><b>' + nis(st.planned) + '</b>' +
         '<span class="small muted">בפועל</span><b>' + nis(st.actual) + '</b></div>' +
         '<div class="row" style="margin-top:10px">' +
@@ -1558,10 +1775,25 @@ var SEED_CONTACTS = [
       '<div class="bar"><i style="width:' + pct(sv.done, sv.total) + '%"></i></div>' +
       '<div class="small muted" style="margin-top:8px">מספרי הטלפון הם ברירת מחדל לנוחות – כדאי לאמת מול הספק שלכם.</div></div>';
 
-    var svcList = state.services.filter(function (s) { return hit(s.name, s.provider, s.notes, s.account, s.phone); });
+    h += toolbar('services', [
+      ['status', 'סטטוס', filt('services', 'status'),
+        [['', 'כל הסטטוסים']].concat(SERVICE_STATUS.map(function (x) { return [x.id, x.label]; }))],
+      ['provider', 'ספק', filt('services', 'provider'),
+        [['', 'כל הספקים']].concat(uniq(state.services.map(function (x) { return (x.provider || '').trim(); }))
+          .map(function (v) { return [v, v]; }))]
+    ]);
+
+    var svcList = state.services.filter(function (s) {
+      if (filt('services', 'status') && s.status !== filt('services', 'status')) return false;
+      if (filt('services', 'provider') && (s.provider || '').trim() !== filt('services', 'provider')) return false;
+      return hit(s.name, s.provider, s.notes, s.account, s.phone);
+    });
+    svcList = sortList('services', svcList);
+    var svManual = isManual('services');
+    h += '<div data-drag-group data-drag-coll="services">';
     svcList.forEach(function (s) {
       var stl = SERVICE_STATUS.filter(function (x) { return x.id === s.status; })[0];
-      h += '<div class="card"><h2>' + esc(s.name) +
+      h += '<div class="card" data-drag-item data-id="' + s.id + '">' + grip(svManual) + '<h2>' + esc(s.name) +
         '<span class="tag ' + (s.status === 'done' ? 'ok' : s.status === 'wip' ? 'warn' : '') + '">' + esc(stl ? stl.label : '') + '</span></h2>' +
         '<div class="row">' +
         '<label class="f">ספק<input value="' + esc(s.provider || '') + '" ' + bind('services', s.id, 'provider') + '></label>' +
@@ -1575,6 +1807,7 @@ var SEED_CONTACTS = [
         '<span class="spacer"></span>' +
         '<button class="x" data-act="del" data-coll="services" data-id="' + s.id + '">✕ מחיקה</button></div></div>';
     });
+    h += '</div>';
     if (!svcList.length) h += '<div class="card"><div class="empty">לא נמצאו שירותים מתאימים</div></div>';
     h += '<div class="card"><button class="btn" data-act="add-service">➕ שירות נוסף</button></div>';
     return searchNote(svcList.length, sv.total, 'שירותים') + h;
@@ -1587,13 +1820,25 @@ var SEED_CONTACTS = [
       '<input id="ncPhone" placeholder="טלפון" inputmode="tel" style="flex:1 1 120px">' +
       '<button class="btn primary" data-act="add-contact">הוסף</button></div></div>';
 
-    var conList = state.contacts.filter(function (c) { return hit(c.name, c.role, c.phone, c.notes); });
+    h += toolbar('contacts', [
+      ['role', 'תפקיד', filt('contacts', 'role'),
+        [['', 'כל התפקידים']].concat(uniq(state.contacts.map(function (c) { return (c.role || '').trim(); }))
+          .map(function (v) { return [v, v]; }))]
+    ]);
+
+    var conList = state.contacts.filter(function (c) {
+      if (filt('contacts', 'role') && (c.role || '').trim() !== filt('contacts', 'role')) return false;
+      return hit(c.name, c.role, c.phone, c.notes);
+    });
+    conList = sortList('contacts', conList);
+    var coManual = isManual('contacts');
     if (!state.contacts.length) h += '<div class="card"><div class="empty">אין עדיין אנשי קשר</div></div>';
     else if (!conList.length) h += '<div class="card"><div class="empty">לא נמצאו אנשי קשר מתאימים</div></div>';
+    h += '<div data-drag-group data-drag-coll="contacts">';
     conList.forEach(function (c) {
       var tel = String(c.phone || '').replace(/[^\d+]/g, '');
       var wa = tel.replace(/^0/, '972').replace(/\+/, '');
-      h += '<div class="card"><div class="row">' +
+      h += '<div class="card" data-drag-item data-id="' + c.id + '">' + grip(coManual) + '<div class="row">' +
         '<label class="f">שם<input value="' + esc(c.name || '') + '" ' + bind('contacts', c.id, 'name') + '></label>' +
         '<label class="f">תפקיד<input value="' + esc(c.role || '') + '" ' + bind('contacts', c.id, 'role') + '></label>' +
         '<label class="f">טלפון<input inputmode="tel" value="' + esc(c.phone || '') + '" ' + bind('contacts', c.id, 'phone') + '></label>' +
@@ -1604,6 +1849,7 @@ var SEED_CONTACTS = [
         '<span class="spacer"></span>' +
         '<button class="x" data-act="del" data-coll="contacts" data-id="' + c.id + '">✕ מחיקה</button></div></div>';
     });
+    h += '</div>';
     return searchNote(conList.length, state.contacts.length, 'אנשי קשר') + h;
   }
 
@@ -1639,14 +1885,98 @@ var SEED_CONTACTS = [
 
   // מצב המגירה נקרא תמיד מה-DOM עצמו, כדי שלא ייווצר פער בין משתנה למציאות
   function drawerIsOpen() { return $('#drawer').classList.contains('open'); }
+  // בדסקטופ התפריט נשאר נעוץ עד שסוגרים אותו, והמסך נשאר פעיל לצידו.
+  // בנייד הוא שכבה מעל התוכן ולכן נסגר אחרי בחירת מסך.
+  var LS_DRAWER = 'afula_drawer_pinned';
+  function isDesktop() { return window.matchMedia('(min-width: 820px)').matches; }
+
   function setDrawer(open) {
     var d = $('#drawer'), s = $('#scrim'), b = $('#btnMenu');
     d.classList.toggle('open', open);
     d.setAttribute('aria-hidden', open ? 'false' : 'true');
     b.setAttribute('aria-expanded', open ? 'true' : 'false');
     b.setAttribute('aria-label', open ? 'סגירת התפריט' : 'פתיחת התפריט');
-    s.classList.toggle('hidden', !open);
-    if (open) { var f = d.querySelector('.nav-item'); if (f) f.focus(); }
+    // הרקע המעומעם חוסם לחיצות, ולכן הוא מוצג רק כשהתפריט צף מעל התוכן
+    s.classList.toggle('hidden', !open || isDesktop());
+    document.body.classList.toggle('drawer-pinned', open && isDesktop());
+    if (isDesktop()) safeLS.set(LS_DRAWER, open ? '1' : '0');
+    if (open && !isDesktop()) { var f = d.querySelector('.nav-item'); if (f) f.focus(); }
+  }
+
+  /* ---------- גרירה לשינוי סדר ---------- */
+  // מנוע אחד לכל המסכים. עובד בעכבר ובמגע דרך pointer events, וגורר רק
+  // בתוך אותה קבוצה – כך שפריט לא יכול לעבור בין שלבים או קטגוריות.
+  var dragCtx = null;
+
+  function dragStart(e) {
+    var g = e.target.closest && e.target.closest('[data-grip]');
+    if (!g || e.button > 0) return;
+    var item = g.closest('[data-drag-item]');
+    var group = item && item.closest('[data-drag-group]');
+    if (!item || !group) return;
+    e.preventDefault();
+    dragCtx = { item: item, group: group, coll: group.dataset.dragColl, pid: e.pointerId };
+    item.classList.add('dragging');
+    document.body.classList.add('dragging-active');
+    try { g.setPointerCapture(e.pointerId); } catch (err) {}
+  }
+
+  function dragMove(e) {
+    if (!dragCtx || e.pointerId !== dragCtx.pid) return;
+    e.preventDefault();
+    var cur = dragCtx.item;
+    var items = [].slice.call(dragCtx.group.querySelectorAll('[data-drag-item]'));
+    var curRect = cur.getBoundingClientRect();
+    for (var i = 0; i < items.length; i++) {
+      var other = items[i];
+      if (other === cur) continue;
+      var r = other.getBoundingClientRect();
+      var mid = r.top + r.height / 2;
+      if (e.clientY < mid && curRect.top > r.top) {
+        other.parentNode.insertBefore(cur, other); return;
+      }
+      if (e.clientY > mid && curRect.top < r.top) {
+        other.parentNode.insertBefore(cur, other.nextSibling); return;
+      }
+    }
+  }
+
+  function dragEnd(e) {
+    if (!dragCtx || (e && e.pointerId !== dragCtx.pid)) return;
+    var group = dragCtx.group, coll = dragCtx.coll;
+    dragCtx.item.classList.remove('dragging');
+    document.body.classList.remove('dragging-active');
+    dragCtx = null;
+    var ids = [].slice.call(group.querySelectorAll('[data-drag-item]'))
+      .map(function (n) { return n.dataset.id; });
+    if (applyOrder(coll, ids)) { save(); render(); }
+  }
+
+  // כותב את הסדר החדש למערך המצב. הפריטים הנגררים תופסים בדיוק את
+  // אותם מקומות שהיו להם, ולכן פריטים מסוננים או מקבוצות אחרות לא זזים.
+  function applyOrder(collName, ids) {
+    var arr = state[collName];
+    if (!arr || !ids.length) return false;
+    var inGroup = {};
+    ids.forEach(function (id) { inGroup[id] = true; });
+    var slots = [], byId = {};
+    arr.forEach(function (x, i) {
+      byId[x.id] = x;
+      if (inGroup[x.id]) slots.push(i);
+    });
+    if (slots.length !== ids.length) return false;
+    var changed = false;
+    ids.forEach(function (id, k) {
+      if (arr[slots[k]] !== byId[id]) changed = true;
+      arr[slots[k]] = byId[id];
+    });
+    return changed;
+  }
+
+  // ידית גרירה. מוסתרת כשמיון אחר מ"ידני" פעיל, כי אז הסדר המוצג
+  // אינו הסדר השמור וגרירה הייתה מטעה.
+  function grip(manual) {
+    return manual ? '<button type="button" class="grip" data-grip title="גרירה לשינוי סדר" aria-label="גרירה לשינוי סדר">⠿</button>' : '';
   }
 
   function render() {
@@ -1667,8 +1997,11 @@ var SEED_CONTACTS = [
     render._last = view;
   }
 
-  /* ---------- סנכרון ללוח שנה של Google ---------- */
-  // סנכרון חד-כיווני: האפליקציה היא מקור האמת, לוח השנה רק משקף אותה.
+  /* ---------- סנכרון עם לוח השנה של Google ---------- */
+  // שני כיוונים, שניהם ידניים ובלחיצה מפורשת:
+  //   דחיפה  – המשימות נכתבות ללוח. נוגעת רק באירועים שהאפליקציה יצרה.
+  //   משיכה  – אירועים שנוספו ידנית בלוח נכנסים כמשימות, ותאריכים שהוזזו
+  //            בלוח מתעדכנים במשימה.
   // נכתב ללוח ייעודי שהאפליקציה יוצרת בעצמה, ולכן ההרשאה המבוקשת היא
   // calendar.app.created – היא לא מאפשרת גישה ללוחות הקיימים של המשתמש.
   var GCAL = {
@@ -1831,6 +2164,113 @@ var SEED_CONTACTS = [
     return page('');
   }
 
+  function gcalTaskIdOf(ev) {
+    return (ev && ev.extendedProperties && ev.extendedProperties.private &&
+      ev.extendedProperties.private.afulaTaskId) || '';
+  }
+
+  // תאריך האירוע כ-YYYY-MM-DD. אירוע "כל היום" מגיע ב-date, אירוע רגיל ב-dateTime.
+  function gcalEventDate(ev) {
+    var s = ev && ev.start;
+    if (!s) return '';
+    if (s.date) return s.date;
+    if (s.dateTime) return String(s.dateTime).slice(0, 10);
+    return '';
+  }
+
+  // לאיזה שלב שייך תאריך, לפי המרחק מיום המעבר. בלי תאריך מעבר מוגדר
+  // אין ממה לגזור, ואז הכול נוחת ב"חודש לפני" כברירת מחדל שקל לתקן.
+  function gcalPhaseFor(due) {
+    var md = state.settings.moveDate;
+    if (!md || !due) return 'p30';
+    var days = Math.round((new Date(md + 'T12:00:00') - new Date(due + 'T12:00:00')) / 86400000);
+    if (days < 0) return 'post';
+    if (days === 0) return 'pday';
+    if (days <= 7) return 'p7';
+    if (days <= 14) return 'p14';
+    if (days <= 30) return 'p30';
+    return 'p60';
+  }
+
+  // סנכרון הפוך: מושך מהלוח הייעודי אל האפליקציה.
+  //  · אירוע ידני  -> נוצרת משימה חדשה, והאירוע מסומן ב-afulaTaskId כדי
+  //    שמשיכה נוספת לא תיצור כפילות ושהדחיפה תדע לתחזק אותו מכאן והלאה.
+  //  · אירוע שלנו שהוזז או ששמו שונה בלוח -> המשימה מתעדכנת לפיו.
+  function gcalPull() {
+    if (gcalBusy) return;
+    if (ARTIFACT) { toast('סנכרון עם לוח שנה זמין רק באתר עצמו'); return; }
+    gcalBusy = true; gcalMsg = ''; render();
+
+    var added = 0, changed = 0, calId;
+
+    gcalEnsureCalendar()
+      .then(function (id) { calId = id; return gcalListEvents(id); })
+      .then(function (events) {
+        var chain = Promise.resolve();
+
+        events.forEach(function (ev) {
+          var due = gcalEventDate(ev);
+          var title = (ev.summary || '').trim();
+          if (!due || !title) return;              // אירוע בלי תאריך או בלי שם – אין מה לייבא
+          var tid = gcalTaskIdOf(ev);
+
+          if (tid) {
+            var task = findItem('tasks', tid);
+            if (!task) return;                     // המשימה נמחקה; הדחיפה תנקה את האירוע
+            if (task.due === due && task.title === title) return;
+            task.due = due;
+            task.title = title;
+            // מיישרים את הטביעה כדי שהדחיפה הבאה לא "תתקן" בחזרה
+            task.calendarEventId = ev.id;
+            task.syncHash = gcalHash(task);
+            changed++;
+            return;
+          }
+
+          // אירוע ידני: נכנס כמשימה חדשה ומסומן כשייך לאפליקציה
+          var nt = {
+            id: uid(),
+            phase: gcalPhaseFor(due),
+            title: title,
+            done: false,
+            due: due,
+            calendarEventId: ev.id
+          };
+          nt.syncHash = gcalHash(nt);
+          state.tasks.push(nt);
+          added++;
+          chain = chain.then(function () {
+            return gcalFetch('/calendars/' + encodeURIComponent(calId) + '/events/' + encodeURIComponent(ev.id), {
+              method: 'PATCH',
+              body: { extendedProperties: { private: { afulaTaskId: nt.id } } }
+            }).catch(function (e) {
+              // אם הסימון נכשל, עדיף לוותר על המשימה מאשר להכפיל אותה בפעם הבאה
+              console.error(e);
+              state.tasks = state.tasks.filter(function (x) { return x.id !== nt.id; });
+              added--;
+            });
+          });
+        });
+
+        return chain;
+      })
+      .then(function () {
+        state.settings.calendarPulledAt = Date.now();
+        save();
+        gcalBusy = false;
+        gcalMsg = added + ' משימות נוספו, ' + changed + ' עודכנו מהלוח';
+        render();
+        toast('המשיכה הושלמה: ' + gcalMsg);
+      })
+      .catch(function (err) {
+        console.error(err);
+        gcalBusy = false;
+        gcalMsg = 'שגיאה: ' + (err && err.message ? err.message : 'המשיכה נכשלה');
+        render();
+        toast(gcalMsg);
+      });
+  }
+
   function gcalSync() {
     if (gcalBusy) return;
     if (ARTIFACT) { toast('סנכרון ללוח שנה זמין רק באתר עצמו'); return; }
@@ -1841,14 +2281,17 @@ var SEED_CONTACTS = [
     gcalEnsureCalendar()
       .then(function (id) { calId = id; return gcalListEvents(id); })
       .then(function (events) {
-        // מיפוי מזהה משימה -> אירוע. הלוח כולו שלנו, ולכן אירוע בלי משימה
-        // מתאימה הוא שריד של משימה שנמחקה (אולי במכשיר אחר) וצריך להימחק.
+        // מיפוי מזהה משימה -> אירוע.
+        // האפליקציה מנהלת אך ורק אירועים שהיא עצמה יצרה, כלומר כאלה
+        // שנושאים afulaTaskId. אירוע שנוצר ידנית בלוח לא נמחק ולא משתנה –
+        // הוא חומר הגלם של "סנכרן מלוח שנה", ובלי ההפרדה הזאת שני הכפתורים
+        // היו מבטלים זה את זה.
         var byTask = {};
         var orphans = [];
         events.forEach(function (ev) {
-          var tid = ev.extendedProperties && ev.extendedProperties.private &&
-            ev.extendedProperties.private.afulaTaskId;
-          if (tid && !byTask[tid]) byTask[tid] = ev; else orphans.push(ev);
+          var tid = gcalTaskIdOf(ev);
+          if (!tid) return;                       // אירוע ידני – לא נוגעים
+          if (!byTask[tid]) byTask[tid] = ev; else orphans.push(ev);
         });
 
         var chain = Promise.resolve();
@@ -1961,14 +2404,16 @@ var SEED_CONTACTS = [
     var tab = e.target.closest('[data-tab]');
     if (tab) {
       var d = tab.dataset;
+      // בדסקטופ התפריט נשאר פתוח; בנייד הוא מסתיר את התוכן ולכן נסגר
+      var keepOpen = isDesktop() && drawerIsOpen();
       // סינונים שמגיעים יחד עם הניווט, כדי שהמסך ייפתח ישר על מה שרלוונטי
-      if (d.prio !== undefined) viewShopping._p = d.prio;
-      if (d.shophide !== undefined) viewShopping._hide = d.shophide === '1';
+      if (d.prio !== undefined) setFilter('shopping', 'prio', d.prio);
+      if (d.shophide !== undefined) setFilter('shopping', 'bought', d.shophide === '1' ? '0' : '');
       if (d.taskphase !== undefined) viewTasks._ph = d.taskphase;
       if (d.taskstate !== undefined) viewTasks._st = d.taskstate;
-      if (d.boxstatus !== undefined) viewBoxes._f = d.boxstatus;
+      if (d.boxstatus !== undefined) setFilter('boxes', 'status', d.boxstatus);
       view = d.tab;
-      setDrawer(false);
+      setDrawer(keepOpen);
       render();
       return;
     }
@@ -2079,6 +2524,7 @@ var SEED_CONTACTS = [
     }
     else if (act === 'task-move') moveTask(el.dataset.id, el.dataset.dir === 'up' ? -1 : 1);
     else if (act === 'gcal-sync') gcalSync();
+    else if (act === 'gcal-pull') gcalPull();
     else if (act === 'print-labels') printLabels();
     else if (act === 'settings') openSettings();
     else if (act === 'clear-search') {
@@ -2091,6 +2537,15 @@ var SEED_CONTACTS = [
   /* ---------- תפריט צד וחיפוש ---------- */
   $('#btnMenu').addEventListener('click', function () { setDrawer(!drawerIsOpen()); });
   $('#scrim').addEventListener('click', function () { setDrawer(false); });
+  document.addEventListener('pointerdown', dragStart);
+  document.addEventListener('pointermove', dragMove);
+  document.addEventListener('pointerup', dragEnd);
+  document.addEventListener('pointercancel', dragEnd);
+  // מעבר בין נייד לדסקטופ משנה את התנהגות התפריט
+  window.addEventListener('resize', function () {
+    if (drawerIsOpen()) setDrawer(true);
+    else document.body.classList.remove('drawer-pinned');
+  });
   document.addEventListener('keydown', function (e) {
     if (e.key === 'Escape') {
       if (drawerIsOpen()) { setDrawer(false); $('#btnMenu').focus(); return; }
@@ -2162,9 +2617,15 @@ var SEED_CONTACTS = [
       if (it) { it[tg.dataset.field] = tg.checked; save(); render(); }
       return;
     }
-    if (e.target.id === 'boxFilter') { viewBoxes._f = e.target.value; render(); return; }
-    if (e.target.id === 'shopPrio') { viewShopping._p = e.target.value; render(); return; }
-    if (e.target.id === 'shopHide') { viewShopping._hide = e.target.checked; render(); return; }
+    if (e.target.dataset && e.target.dataset.sortfor) {
+      sortBy[e.target.dataset.sortfor] = e.target.value; render(); return;
+    }
+    if (e.target.dataset && e.target.dataset.filterfor) {
+      var fv = e.target.dataset.filterfor;
+      filterBy[fv] = filterBy[fv] || {};
+      filterBy[fv][e.target.dataset.field] = e.target.value;
+      render(); return;
+    }
     if (e.target.id === 'taskPhase') { viewTasks._ph = e.target.value; render(); return; }
     if (e.target.id === 'taskDone') { viewTasks._st = e.target.value; render(); }
   });
@@ -2321,6 +2782,8 @@ var SEED_CONTACTS = [
   /* ---------- אתחול ---------- */
   state = loadLocal();
   render();
+  // בדסקטופ התפריט חוזר למצב שבו נשאר. בנייד הוא תמיד מתחיל סגור.
+  if (isDesktop() && safeLS.get(LS_DRAWER) === '1') setDrawer(true);
   initCloud();
 
   if (!ARTIFACT && 'serviceWorker' in navigator && location.protocol.startsWith('http')) {
