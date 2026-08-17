@@ -321,18 +321,11 @@ label.f{display:flex;flex-direction:column;gap:5px;font-size:12px;color:var(--mu
 .rank:focus-visible{outline:2px solid var(--brand);outline-offset:1px}
 .rank.static{cursor:default;opacity:.5}
 .rank.static:hover{background:transparent;color:var(--muted)}
-
-
-
-@media (prefers-color-scheme: dark){}
-
-
-.task.done 
-/* במסך מגע שטח הלחיצה גדל מעט – אך לא מספיק כדי להגביה את השורה */
-@media (pointer: coarse){
-  
-  
-}
+/* בכרטיסים (מסמכים, שירותים, אנשי קשר) המספר יושב בפינה במקום בשורה */
+.card > .rank{position:absolute;inset-block-start:12px;inset-inline-start:8px}
+.card[data-drag-item]{position:relative;padding-inline-start:38px}
+/* בארגז המספר הגדול הוא מספר הארגז; מספר הסדר קטן ויושב לצידו למעלה */
+.box > .rank{align-self:flex-start;margin-top:12px}
 
 /* ---- העברת משימה לשלב אחר ---- */
 .phase-pick{position:relative;display:inline-flex;align-items:center;flex:none}
@@ -441,27 +434,32 @@ tfoot td{font-weight:700;border-bottom:0}
 .toolbar .row{gap:8px}
 .toolbar .f{flex:1 1 150px;min-width:0;font-size:12px;color:var(--muted)}
 .toolbar select{width:100%}
+/* כפתור הניקוי יושב בסוף אותה שורה, בגובה השדות ולא בגובה התוויות */
+.clearfilt{flex:0 0 auto;align-self:flex-end;white-space:nowrap}
+.clearfilt.on{background:var(--brand-soft);border-color:transparent;color:var(--brand-ink)}
+@media (prefers-color-scheme: dark){.clearfilt.on{color:var(--brand)}}
 @media(max-width:480px){
   .toolbar{padding:8px 10px}
-  .toolbar .f{flex:1 1 46%;font-size:11.5px}
+  .toolbar .row{gap:6px}
+  .toolbar .f{flex:1 1 46%;font-size:11.5px;gap:3px}
   .toolbar select{font-size:13px;padding:6px 8px}
+  /* אותו רוחב כמו שדה סינון, כדי שהכפתור ימלא את החצי הריק בשורה
+     האחרונה במקום לתפוס שורה שלמה לעצמו */
+  .clearfilt{flex:1 1 46%;font-size:12px;padding:6px 8px}
 }
 
-/* ---- ידית גרירה ---- */
-.grip{
-  flex:none;align-self:center;
-  border:0;background:transparent;color:var(--muted);
-  font-size:16px;line-height:1;padding:6px 3px;margin-inline-start:-2px;
-  cursor:grab;border-radius:8px;
-  touch-action:none;              /* בלי זה הדפדפן גולל במקום לגרור */
-  -webkit-user-select:none;user-select:none
+/* ---- כפתור קישור ---- */
+/* אותה התנהגות בכל מקום: לחיצה קצרה פותחת, לחיצה ארוכה עורכת.
+   touch-action מונע מהדפדפן להתחיל גלילה/בחירה תוך כדי הלחיצה הארוכה. */
+.linkbtn{
+  flex:0 0 auto;touch-action:manipulation;
+  -webkit-user-select:none;user-select:none;
+  -webkit-touch-callout:none
 }
-.grip:hover{background:var(--card-2);color:var(--text)}
-.grip:active{cursor:grabbing}
-.card > .grip{position:absolute;inset-block-start:9px;inset-inline-start:8px}
-.card[data-drag-item]{position:relative;padding-inline-start:38px}
-.box > .grip{align-self:flex-start;margin-top:2px}
-@media(max-width:480px){.grip{font-size:15px;padding:8px 2px}}
+.linkbtn.has{background:var(--brand-soft);border-color:transparent;color:var(--brand-ink)}
+@media (prefers-color-scheme: dark){.linkbtn.has{color:var(--brand)}}
+.shopmeta .linkbtn{padding:5px 9px;font-size:12px}
+@media(max-width:480px){.shopmeta .linkbtn{padding:4px 7px;font-size:11.5px}}
 
 /* פריט בזמן גרירה */
 [data-drag-item].dragging{
@@ -474,7 +472,7 @@ body.dragging-active{
   -webkit-user-select:none;user-select:none;
   cursor:grabbing
 }
-body.dragging-active .grip{cursor:grabbing}
+body.dragging-active .rank{cursor:grabbing}
 
 </style>
 </head>
@@ -800,6 +798,9 @@ var SEED_CONTACTS = [
   var LS_DATA = 'afula_move_v1';
   var LS_CFG = 'afula_move_fb_cfg';
   var LS_SPACE = 'afula_move_space';
+  // המסך הפעיל והסינונים נשמרים בנפרד מהנתונים: הם מצב תצוגה של המכשיר
+  // הזה בלבד ואין שום סיבה לסנכרן אותם בין מכשירים.
+  var LS_UI = 'afula_move_ui';
 
   /* ---------- עזרים ---------- */
   var $ = function (s, r) { return (r || document).querySelector(s); };
@@ -862,7 +863,7 @@ var SEED_CONTACTS = [
       tasks: SEED_TASKS.map(function (t) { return { id: uid(), phase: t[0], title: t[1], done: false, due: '' }; }),
       boxes: [],
       shopping: SEED_SHOPPING.map(function (s) {
-        return { id: uid(), area: s[0], name: s[1], prio: s[2], est: 0, cost: 0, store: '', bought: false };
+        return { id: uid(), area: s[0], name: s[1], prio: s[2], est: 0, cost: 0, store: '', link: '', bought: false };
       }),
       docs: SEED_DOCS.map(function (d) {
         return { id: uid(), type: d[0], title: d[1], date: '', value: '', link: '', notes: '' };
@@ -1090,6 +1091,18 @@ var SEED_CONTACTS = [
     });
     return { bought: bought, total: state.shopping.length, est: est, cost: cost, mustLeft: mustLeft };
   }
+  // סיכום לקטגוריית קניות אחת – מקביל ל-sectionStats של התקציב
+  function areaStats(area) {
+    var est = 0, cost = 0, bought = 0, total = 0;
+    state.shopping.forEach(function (s) {
+      if (s.area !== area) return;
+      total++;
+      est += Number(s.est) || 0;
+      cost += Number(s.cost) || 0;
+      if (s.bought) bought++;
+    });
+    return { est: est, cost: cost, bought: bought, total: total };
+  }
   function sectionById(id) {
     for (var i = 0; i < state.budgetSections.length; i++) {
       if (state.budgetSections[i].id === id) return state.budgetSections[i];
@@ -1160,6 +1173,34 @@ var SEED_CONTACTS = [
   var sortBy = {};   // view -> sort key
   var filterBy = {}; // view -> {field: value}
 
+  // רענון של הדף לא אמור לאבד את מקומו של המשתמש: המסך הפעיל, המיון
+  // והסינונים נשמרים במכשיר ונטענים בחזרה באתחול.
+  function saveUI() {
+    safeLS.set(LS_UI, JSON.stringify({ view: view, sortBy: sortBy, filterBy: filterBy }));
+  }
+  function loadUI() {
+    try {
+      var u = JSON.parse(safeLS.get(LS_UI) || 'null');
+      if (!u) return;
+      if (u.view && VIEWS[u.view]) view = u.view;
+      if (u.sortBy && typeof u.sortBy === 'object') sortBy = u.sortBy;
+      if (u.filterBy && typeof u.filterBy === 'object') filterBy = u.filterBy;
+    } catch (e) {}
+  }
+  // חזרה למצב ההתחלתי של מסך אחד: בלי מיון, בלי סינונים ובלי חיפוש פעיל
+  function clearFilters(v) {
+    delete sortBy[v];
+    delete filterBy[v];
+    var s = $('#globalSearch');
+    if (s && s.value) s.value = '';
+  }
+  function hasFilters(v) {
+    if (sortOf(v) !== 'manual') return true;
+    var f = filterBy[v] || {};
+    for (var k in f) if (f[k]) return true;
+    return !!query();
+  }
+
   function setFilter(v, field, val) {
     filterBy[v] = filterBy[v] || {};
     filterBy[v][field] = val;
@@ -1215,6 +1256,8 @@ var SEED_CONTACTS = [
           return '<option value="' + esc(o[0]) + '"' + (s[2] === o[0] ? ' selected' : '') + '>' + esc(o[1]) + '</option>';
         }).join('') + '</select></label>';
     });
+    h += '<button type="button" class="btn sm clearfilt' + (hasFilters(v) ? ' on' : '') +
+      '" data-act="clear-filters" data-view="' + v + '">נקה סינונים 🧹</button>';
     h += '</div>' +
       (isManual(v) ? '' : '<div class="small muted" style="margin-top:8px">במיון הזה לא ניתן לגרור. חוזרים ל"סדר ידני" כדי לשנות סדר.</div>') +
       '</div>';
@@ -1249,8 +1292,10 @@ var SEED_CONTACTS = [
 
   /* ---------- רכיבי HTML ---------- */
   // כרטיס נתון. אם הועבר tab – הכרטיס הופך לכפתור שמוביל למסך המתאים
-  function statCard(k, v, cur, tot, tab) {
-    var inner = '<div class="k">' + esc(k) + '</div><div class="v">' + v + '</div>' +
+  // totKey מסמן את שדה הסכום כדי שיתעדכן תוך כדי הקלדה, בלי לבנות מחדש את המסך
+  function statCard(k, v, cur, tot, tab, totKey) {
+    var inner = '<div class="k">' + esc(k) + '</div>' +
+      '<div class="v"' + (totKey ? ' data-total="' + totKey + '"' : '') + '>' + v + '</div>' +
       (tot != null ? '<div class="bar"><i style="width:' + pct(cur, tot) + '%"></i></div>' : '');
     if (!tab) return '<div class="stat">' + inner + '</div>';
     return '<button type="button" class="stat stat-link" data-tab="' + tab + '">' + inner + '</button>';
@@ -1276,6 +1321,37 @@ var SEED_CONTACTS = [
   }
   function bind(coll, id, field, extra) {
     return 'data-act="edit" data-coll="' + coll + '" data-id="' + id + '" data-field="' + field + '"' + (extra || '');
+  }
+
+  // כפתור קישור. שדה קישור מלא תופס שורה שלמה ומציג טקסט שאף אחד לא קורא,
+  // ולכן הקישור מתחבא מאחורי כפתור אחד: לחיצה קצרה פותחת, לחיצה ארוכה עורכת.
+  function linkBtn(collName, it) {
+    var has = !!String(it.link || '').trim();
+    return '<button type="button" class="btn sm linkbtn' + (has ? ' has' : '') + '"' +
+      ' data-act="link" data-coll="' + collName + '" data-id="' + it.id + '"' +
+      ' title="' + (has ? 'לחיצה קצרה פותחת · לחיצה ארוכה לעריכת הקישור' : 'לחיצה להוספת קישור') + '">' +
+      (has ? '🔗 פתח קישור' : '🔗 הוספת קישור') + '</button>';
+  }
+
+  function editLink(collName, id) {
+    var it = findItem(collName, id);
+    if (!it) return;
+    var v = prompt('הדביקו כאן קישור (גוגל דרייב, גוגל תמונות, אתר החנות…)\nלמחיקת הקישור: מוחקים את השורה ומאשרים.',
+      it.link || '');
+    if (v === null) return;
+    v = v.trim();
+    // הדבקה מהדפדפן לרוב כוללת את הפרוטוקול, אבל לא תמיד – משלימים אותו
+    if (v && !/^https?:\/\//i.test(v)) v = 'https://' + v;
+    it.link = v;
+    save(); render();
+    toast(v ? 'הקישור נשמר' : 'הקישור הוסר');
+  }
+
+  function openLink(collName, id) {
+    var it = findItem(collName, id);
+    var url = it && String(it.link || '').trim();
+    if (!url) { editLink(collName, id); return; }
+    window.open(url, '_blank', 'noopener');
   }
 
   /* ---------- מסכים ---------- */
@@ -1429,38 +1505,33 @@ var SEED_CONTACTS = [
         '</div>';
     }
 
-    // סינון לפי שלב + לפי מה שכבר בוצע
-    h += '<div class="card"><div class="row">' +
-      '<label class="f">שלב<select id="taskPhase">' +
-      '<option value="">כל השלבים</option>' + opts(PHASES, viewTasks._ph || '', 'id', 'label') +
-      '</select></label>' +
-      '<label class="f">מצב<select id="taskDone">' +
-      '<option value="">הכול</option>' +
-      '<option value="open"' + (viewTasks._st === 'open' ? ' selected' : '') + '>רק שלא בוצעו</option>' +
-      '<option value="done"' + (viewTasks._st === 'done' ? ' selected' : '') + '>רק שבוצעו</option>' +
-      '</select></label></div></div>';
-
+    // כל המיון והסינון יושבים בסרגל אחד, כמו במסך הקניות
     h += toolbar('tasks', [
+      ['phase', 'שלב', filt('tasks', 'phase'),
+        [['', 'כל השלבים']].concat(PHASES.map(function (p) { return [p.id, p.label]; }))],
+      ['state', 'מצב', filt('tasks', 'state'),
+        [['', 'הכול'], ['open', 'רק שלא בוצעו'], ['done', 'רק שבוצעו']]],
       ['due', 'תאריך יעד', filt('tasks', 'due'),
         [['', 'הכל'], ['has', 'עם תאריך'], ['none', 'ללא תאריך'], ['late', 'באיחור'], ['week', 'בשבוע הקרוב']]],
       ['cal', 'לוח שנה', filt('tasks', 'cal'), [['', 'הכל'], ['1', 'מסונכרנות ללוח'], ['0', 'לא בלוח']]]
     ]);
 
-    var phases = PHASES.filter(function (p) { return !viewTasks._ph || p.id === viewTasks._ph; });
+    var phFilt = filt('tasks', 'phase'), stFilt = filt('tasks', 'state');
+    var phases = PHASES.filter(function (p) { return !phFilt || p.id === phFilt; });
     var shown = 0, total = state.tasks.length;
 
     phases.forEach(function (p) {
       var all = state.tasks.filter(function (t) { return t.phase === p.id; });
       var list = all.filter(function (t) {
-        if (viewTasks._st === 'open' && t.done) return false;
-        if (viewTasks._st === 'done' && !t.done) return false;
+        if (stFilt === 'open' && t.done) return false;
+        if (stFilt === 'done' && !t.done) return false;
         if (!taskDueOk(t)) return false;
         if (!taskCalOk(t)) return false;
         return hit(t.title);
       });
       shown += list.length;
       // בסינון פעיל אין טעם להציג שלבים ריקים
-      if (!list.length && (query() || viewTasks._st || filt('tasks', 'due') || filt('tasks', 'cal'))) return;
+      if (!list.length && (query() || stFilt || filt('tasks', 'due') || filt('tasks', 'cal'))) return;
       var done = all.filter(function (t) { return t.done; }).length;
       h += '<div class="card phase"><div class="phase-head"><h3>' + esc(p.label) + '</h3>' +
         '<span class="cnt">' + done + '/' + all.length + ' · ' + esc(p.hint) + '</span>' +
@@ -1475,10 +1546,7 @@ var SEED_CONTACTS = [
       list.forEach(function (t, i) {
         var late = !t.done && t.due && t.due < todayISO();
         h += '<div class="task' + (t.done ? ' done' : '') + '" data-drag-item data-id="' + t.id + '">' +
-          (tManual
-            ? '<button type="button" class="rank" data-grip title="גרירה לשינוי סדר העדיפות" ' +
-              'aria-label="גרירה לשינוי סדר העדיפות">' + (i + 1) + '</button>'
-            : '<span class="rank static">' + (i + 1) + '</span>') +
+          rank(i, tManual) +
           '<input type="checkbox"' + (t.done ? ' checked' : '') + ' data-act="toggle" data-coll="tasks" data-id="' + t.id + '" data-field="done">' +
           '<div class="t"><input class="title" value="' + esc(t.title) + '" ' + bind('tasks', t.id, 'title') + '>' +
           '<div class="meta">' +
@@ -1530,9 +1598,9 @@ var SEED_CONTACTS = [
 
     if (!state.boxes.length) h += '<div class="empty">עדיין אין ארגזים. מוסיפים ארגז ומדביקים עליו את המספר.</div>';
     else if (!list.length) h += '<div class="empty">לא נמצאו ארגזים מתאימים</div>';
-    else h += '<div class="grid" data-drag-group data-drag-coll="boxes">' + list.map(function (x) {
+    else h += '<div class="grid" data-drag-group data-drag-coll="boxes">' + list.map(function (x, i) {
       var st = BOX_STATUS.filter(function (s) { return s.id === x.status; })[0];
-      return '<div class="box" data-drag-item data-id="' + x.id + '">' + grip(bManual) +
+      return '<div class="box" data-drag-item data-id="' + x.id + '">' + rank(i, bManual) +
         '<div class="num">' + x.num + '</div><div class="body">' +
         '<input value="' + esc(x.contents) + '" placeholder="תוכן הארגז" ' + bind('boxes', x.id, 'contents') + '>' +
         '<div class="line">' +
@@ -1557,8 +1625,8 @@ var SEED_CONTACTS = [
     var h = '<div class="card"><h2>קניות לדירה <span class="sub">' + sh.bought + '/' + sh.total + ' נקנו</span></h2>' +
       '<div class="bar"><i style="width:' + pct(sh.bought, sh.total) + '%"></i></div>' +
       '<div class="grid g2" style="margin-top:10px">' +
-      '<div class="stat"><div class="k">סה"כ משוער</div><div class="v" id="shopEst">' + nis(sh.est) + '</div></div>' +
-      '<div class="stat"><div class="k">שולם בפועל</div><div class="v" id="shopCost">' + nis(sh.cost) + '</div></div>' +
+      '<div class="stat"><div class="k">סה"כ משוער</div><div class="v" data-total="sh:est">' + nis(sh.est) + '</div></div>' +
+      '<div class="stat"><div class="k">שולם בפועל</div><div class="v" data-total="sh:cost">' + nis(sh.cost) + '</div></div>' +
       '</div></div>';
 
     h += '<div class="card"><h2>פריט חדש</h2><div class="row">' +
@@ -1596,16 +1664,16 @@ var SEED_CONTACTS = [
       var sManual = isManual('shopping');
       shopShown += list.length;
       if (!list.length && query()) return;
-      var got = all.filter(function (s) { return s.bought; }).length;
+      var ast = areaStats(area);
+      var got = ast.bought;
       h += '<div class="card phase"><div class="phase-head"><h3>' + esc(area) + '</h3>' +
         '<span class="cnt">' + got + '/' + all.length + '</span><span class="spacer"></span></div>' +
         '<div class="bar" style="margin-bottom:8px"><i style="width:' + pct(got, all.length) + '%"></i></div>';
       if (!list.length) h += '<div class="empty">אין פריטים מתאימים לסינון</div>';
       h += '<div data-drag-group data-drag-coll="shopping">';
-      list.forEach(function (s) {
-        var pr = SHOP_PRIO.filter(function (p) { return p.id === s.prio; })[0];
+      list.forEach(function (s, i) {
         h += '<div class="task' + (s.bought ? ' done' : '') + '" data-drag-item data-id="' + s.id + '">' +
-          grip(sManual) +
+          rank(i, sManual) +
           '<input type="checkbox"' + (s.bought ? ' checked' : '') + ' data-act="toggle" data-coll="shopping" data-id="' + s.id + '" data-field="bought">' +
           '<div class="t"><input class="title" value="' + esc(s.name) + '" ' + bind('shopping', s.id, 'name') + '>' +
           '<div class="shopmeta">' +
@@ -1616,11 +1684,15 @@ var SEED_CONTACTS = [
           '<input class="mini" placeholder="חנות" value="' + esc(s.store || '') + '" ' + bind('shopping', s.id, 'store') + '>' +
           '<select class="mini" title="העברה לקטגוריה אחרת" ' + bind('shopping', s.id, 'area') + '>' +
           opts(state.shopAreas, s.area) + '</select>' +
+          linkBtn('shopping', s) +
           '</div></div>' +
           '<button class="x" data-act="del" data-coll="shopping" data-id="' + s.id + '" title="מחיקה">✕</button></div>';
-        void pr;
       });
-      h += '</div></div>';
+      // אותה שורת סיכום כמו בתקציב: כמה תוכנן לקטגוריה וכמה יצא בפועל
+      h += '</div><div class="sectotal"><span>סה"כ</span><span class="spacer"></span>' +
+        '<span class="small muted">משוער</span><b data-total="ssec:est:' + esc(area) + '">' + nis(ast.est) + '</b>' +
+        '<span class="small muted">בפועל</span><b data-total="ssec:cost:' + esc(area) + '">' + nis(ast.cost) + '</b>' +
+        '</div></div>';
     });
     if (!shopShown) h += '<div class="card"><div class="empty">לא נמצאו פריטים מתאימים</div></div>';
 
@@ -1640,7 +1712,8 @@ var SEED_CONTACTS = [
 
   function viewDocs() {
     var h = '<div class="card"><h2>מסמכים וצילומים</h2>' +
-      '<div class="small muted">מצלמים בטלפון → התמונה נשמרת בגוגל דרייב או בגוגל תמונות → מדביקים כאן את הקישור. ' +
+      '<div class="small muted">מצלמים בטלפון → התמונה נשמרת בגוגל דרייב או בגוגל תמונות → ' +
+      'לחיצה ארוכה על כפתור הקישור מדביקה אותו כאן, ולחיצה קצרה פותחת אותו. ' +
       'כך כל המספרים והצילומים החשובים במקום אחד, בכל המכשירים.</div></div>';
 
     h += toolbar('docs', [
@@ -1659,9 +1732,9 @@ var SEED_CONTACTS = [
     docList = sortList('docs', docList);
     var dcManual = isManual('docs');
     h += '<div data-drag-group data-drag-coll="docs">';
-    docList.forEach(function (d) {
+    docList.forEach(function (d, i) {
       var tp = DOC_TYPES.filter(function (x) { return x.id === d.type; })[0];
-      h += '<div class="card" data-drag-item data-id="' + d.id + '">' + grip(dcManual) + '<h2>' + esc(d.title || 'ללא שם') +
+      h += '<div class="card" data-drag-item data-id="' + d.id + '">' + rank(i, dcManual) + '<h2>' + esc(d.title || 'ללא שם') +
         '<span class="tag">' + esc(tp ? tp.label : '') + '</span></h2>' +
         '<div class="row">' +
         '<label class="f">כותרת<input value="' + esc(d.title || '') + '" ' + bind('docs', d.id, 'title') + '></label>' +
@@ -1670,11 +1743,9 @@ var SEED_CONTACTS = [
         '<label class="f">' + (d.type === 'meter' ? 'קריאת המונה' : 'מספר / סכום') +
         '<input value="' + esc(d.value || '') + '" ' + bind('docs', d.id, 'value') + '></label>' +
         '</div>' +
-        '<label class="f" style="margin-top:8px">קישור לתמונה או לקובץ (גוגל דרייב / גוגל תמונות)' +
-        '<input value="' + esc(d.link || '') + '" placeholder="https://drive.google.com/..." style="direction:ltr;text-align:left" ' + bind('docs', d.id, 'link') + '></label>' +
         '<label class="f" style="margin-top:8px">הערות<textarea ' + bind('docs', d.id, 'notes') + '>' + esc(d.notes || '') + '</textarea></label>' +
         '<div class="row" style="margin-top:8px">' +
-        '<button class="btn sm" data-act="openlink" data-id="' + d.id + '">🔗 פתח קישור</button>' +
+        linkBtn('docs', d) +
         '<span class="spacer"></span>' +
         '<button class="x" data-act="del" data-coll="docs" data-id="' + d.id + '">✕ מחיקה</button></div></div>';
     });
@@ -1687,10 +1758,10 @@ var SEED_CONTACTS = [
   function viewBudget() {
     var bg = budgetStats();
     var h = '<div class="card"><h2>סיכום</h2><div class="grid g4">' +
-      statCard('מתוכנן', nis(bg.planned)) +
-      statCard('בפועל', nis(bg.actual)) +
-      statCard('הוצאות המעבר', nis(bg.oneTime)) +
-      statCard('שוטף לחודש', nis(bg.recurring)) +
+      statCard('מתוכנן', nis(bg.planned), null, null, null, 'bg:planned') +
+      statCard('בפועל', nis(bg.actual), null, null, null, 'bg:actual') +
+      statCard('הוצאות המעבר', nis(bg.oneTime), null, null, null, 'bg:oneTime') +
+      statCard('שוטף לחודש', nis(bg.recurring), null, null, null, 'bg:recurring') +
       '</div><div class="small muted" style="margin-top:8px">' +
       (bg.planned && bg.actual > bg.planned ? '⚠️ חריגה של ' + nis(bg.actual - bg.planned) + ' מהתכנון' :
         bg.planned ? '✅ בתוך התקציב (' + nis(bg.planned - bg.actual) + ' פנוי)' : 'כדאי למלא סכומים מתוכננים') +
@@ -1725,9 +1796,9 @@ var SEED_CONTACTS = [
       h += '<div data-drag-group data-drag-coll="budget">';
       // אותו פריסת כרטיס כמו במשימות ובקניות: שם הסעיף גדול ובולט,
       // והשדות הקטנים מתחתיו נשברים לשורות במסך צר במקום להיחתך
-      rows.forEach(function (r) {
+      rows.forEach(function (r, i) {
         h += '<div class="task' + (r.paid ? ' done' : '') + '" data-drag-item data-id="' + r.id + '">' +
-          grip(buManual) +
+          rank(i, buManual) +
           '<input type="checkbox"' + (r.paid ? ' checked' : '') +
           ' title="שולם" data-act="toggle" data-coll="budget" data-id="' + r.id + '" data-field="paid">' +
           '<div class="t"><input class="title" value="' + esc(r.cat) + '" placeholder="שם הסעיף" ' +
@@ -1746,8 +1817,8 @@ var SEED_CONTACTS = [
       });
 
       h += '</div><div class="sectotal"><span>סה"כ</span><span class="spacer"></span>' +
-        '<span class="small muted">מתוכנן</span><b>' + nis(st.planned) + '</b>' +
-        '<span class="small muted">בפועל</span><b>' + nis(st.actual) + '</b></div>' +
+        '<span class="small muted">מתוכנן</span><b data-total="bsec:planned:' + esc(sec.id) + '">' + nis(st.planned) + '</b>' +
+        '<span class="small muted">בפועל</span><b data-total="bsec:actual:' + esc(sec.id) + '">' + nis(st.actual) + '</b></div>' +
         '<div class="row" style="margin-top:10px">' +
         '<button class="btn" data-act="add-budget" data-section="' + sec.id + '">➕ סעיף חדש</button>' +
         '<span class="spacer"></span>' +
@@ -1797,9 +1868,9 @@ var SEED_CONTACTS = [
     svcList = sortList('services', svcList);
     var svManual = isManual('services');
     h += '<div data-drag-group data-drag-coll="services">';
-    svcList.forEach(function (s) {
+    svcList.forEach(function (s, i) {
       var stl = SERVICE_STATUS.filter(function (x) { return x.id === s.status; })[0];
-      h += '<div class="card" data-drag-item data-id="' + s.id + '">' + grip(svManual) + '<h2>' + esc(s.name) +
+      h += '<div class="card" data-drag-item data-id="' + s.id + '">' + rank(i, svManual) + '<h2>' + esc(s.name) +
         '<span class="tag ' + (s.status === 'done' ? 'ok' : s.status === 'wip' ? 'warn' : '') + '">' + esc(stl ? stl.label : '') + '</span></h2>' +
         '<div class="row">' +
         '<label class="f">ספק<input value="' + esc(s.provider || '') + '" ' + bind('services', s.id, 'provider') + '></label>' +
@@ -1841,10 +1912,10 @@ var SEED_CONTACTS = [
     if (!state.contacts.length) h += '<div class="card"><div class="empty">אין עדיין אנשי קשר</div></div>';
     else if (!conList.length) h += '<div class="card"><div class="empty">לא נמצאו אנשי קשר מתאימים</div></div>';
     h += '<div data-drag-group data-drag-coll="contacts">';
-    conList.forEach(function (c) {
+    conList.forEach(function (c, i) {
       var tel = String(c.phone || '').replace(/[^\d+]/g, '');
       var wa = tel.replace(/^0/, '972').replace(/\+/, '');
-      h += '<div class="card" data-drag-item data-id="' + c.id + '">' + grip(coManual) + '<div class="row">' +
+      h += '<div class="card" data-drag-item data-id="' + c.id + '">' + rank(i, coManual) + '<div class="row">' +
         '<label class="f">שם<input value="' + esc(c.name || '') + '" ' + bind('contacts', c.id, 'name') + '></label>' +
         '<label class="f">תפקיד<input value="' + esc(c.role || '') + '" ' + bind('contacts', c.id, 'role') + '></label>' +
         '<label class="f">טלפון<input inputmode="tel" value="' + esc(c.phone || '') + '" ' + bind('contacts', c.id, 'phone') + '></label>' +
@@ -1988,10 +2059,14 @@ var SEED_CONTACTS = [
     return changed;
   }
 
-  // ידית גרירה. מוסתרת כשמיון אחר מ"ידני" פעיל, כי אז הסדר המוצג
-  // אינו הסדר השמור וגרירה הייתה מטעה.
-  function grip(manual) {
-    return manual ? '<button type="button" class="grip" data-grip title="גרירה לשינוי סדר" aria-label="גרירה לשינוי סדר">⠿</button>' : '';
+  // המספר הוא גם ידית הגרירה, בכל המסכים: אותו מידע, פעולה אחת.
+  // כשמיון אחר מ"ידני" פעיל המספר נשאר לקריאוּת אך מוצג עמום ולא נגרר,
+  // כי אז הסדר המוצג אינו הסדר השמור וגרירה הייתה מטעה.
+  function rank(i, manual) {
+    return manual
+      ? '<button type="button" class="rank" data-grip title="גרירה לשינוי הסדר" ' +
+        'aria-label="גרירה לשינוי הסדר">' + (i + 1) + '</button>'
+      : '<span class="rank static">' + (i + 1) + '</span>';
   }
 
   function render() {
@@ -2010,6 +2085,9 @@ var SEED_CONTACTS = [
     if (sameView) window.scrollTo({ top: keepY });
     else window.scrollTo({ top: 0 });
     render._last = view;
+    // כל שינוי במסך, במיון או בסינון עובר דרך כאן, ולכן זו הנקודה
+    // הבטוחה היחידה לשמור את מצב התצוגה לרענון הבא
+    saveUI();
   }
 
   /* ---------- סנכרון עם לוח השנה של Google ---------- */
@@ -2396,8 +2474,8 @@ var SEED_CONTACTS = [
       // סינונים שמגיעים יחד עם הניווט, כדי שהמסך ייפתח ישר על מה שרלוונטי
       if (d.prio !== undefined) setFilter('shopping', 'prio', d.prio);
       if (d.shophide !== undefined) setFilter('shopping', 'bought', d.shophide === '1' ? '0' : '');
-      if (d.taskphase !== undefined) viewTasks._ph = d.taskphase;
-      if (d.taskstate !== undefined) viewTasks._st = d.taskstate;
+      if (d.taskphase !== undefined) setFilter('tasks', 'phase', d.taskphase);
+      if (d.taskstate !== undefined) setFilter('tasks', 'state', d.taskstate);
       if (d.boxstatus !== undefined) setFilter('boxes', 'status', d.boxstatus);
       view = d.tab;
       setDrawer(keepOpen);
@@ -2484,7 +2562,7 @@ var SEED_CONTACTS = [
       if (!sn.value.trim()) { sn.focus(); return; }
       state.shopping.push({
         id: uid(), area: $('#nsArea').value, name: sn.value.trim(),
-        prio: $('#nsPrio').value, est: 0, cost: 0, store: '', bought: false
+        prio: $('#nsPrio').value, est: 0, cost: 0, store: '', link: '', bought: false
       });
       save(); render(); toast('נוסף לרשימת הקניות');
     }
@@ -2492,12 +2570,14 @@ var SEED_CONTACTS = [
       state.docs.push({ id: uid(), type: 'other', title: 'רשומה חדשה', date: '', value: '', link: '', notes: '' });
       save(); render();
     }
-    else if (act === 'openlink') {
-      var doc = findItem('docs', el.dataset.id);
-      var url = doc && (doc.link || '').trim();
-      if (!url) { toast('אין עדיין קישור ברשומה הזו'); return; }
-      if (!/^https?:\/\//i.test(url)) { toast('הקישור צריך להתחיל ב־https://'); return; }
-      window.open(url, '_blank', 'noopener');
+    else if (act === 'link') {
+      // לחיצה ארוכה כבר פתחה את העריכה – הקליק שאחריה לא אמור גם לפתוח את הקישור
+      if (linkPress.fired) { linkPress.fired = false; return; }
+      openLink(el.dataset.coll, el.dataset.id);
+    }
+    else if (act === 'clear-filters') {
+      clearFilters(el.dataset.view);
+      render(); toast('הסינונים נוקו');
     }
     else if (act === 'add-service') {
       state.services.push({ id: uid(), name: 'שירות חדש', provider: '', phone: '', account: '', status: 'todo', notes: '' });
@@ -2527,6 +2607,38 @@ var SEED_CONTACTS = [
   document.addEventListener('pointermove', dragMove);
   document.addEventListener('pointerup', dragEnd);
   document.addEventListener('pointercancel', dragEnd);
+
+  /* ---------- לחיצה ארוכה על כפתור קישור ---------- */
+  // הכפתור נושא שתי פעולות: לחיצה קצרה פותחת את הקישור, לחיצה ארוכה
+  // (חצי שנייה) פותחת את תיבת ההדבקה. הדגל fired מונע מהקליק שאחרי
+  // הלחיצה הארוכה לפתוח גם את הקישור.
+  var linkPress = { t: null, fired: false, x: 0, y: 0 };
+  function linkPressCancel() { clearTimeout(linkPress.t); linkPress.t = null; }
+  document.addEventListener('pointerdown', function (e) {
+    var b = e.target.closest && e.target.closest('[data-act="link"]');
+    if (!b || e.button > 0) return;
+    var c = b.dataset.coll, id = b.dataset.id;
+    linkPress.fired = false;
+    linkPress.x = e.clientX; linkPress.y = e.clientY;
+    clearTimeout(linkPress.t);
+    linkPress.t = setTimeout(function () {
+      linkPress.t = null;
+      linkPress.fired = true;
+      editLink(c, id);
+    }, 550);
+  });
+  document.addEventListener('pointerup', linkPressCancel);
+  document.addEventListener('pointercancel', linkPressCancel);
+  document.addEventListener('pointermove', function (e) {
+    // גלילה מעל הכפתור אינה לחיצה ארוכה. הסף נדרש כי אצבע על המסך
+    // זזה תמיד פיקסל-שניים, ובלעדיו כמעט אף לחיצה ארוכה לא הייתה נספרת.
+    if (!linkPress.t) return;
+    if (Math.abs(e.clientX - linkPress.x) > 10 || Math.abs(e.clientY - linkPress.y) > 10) linkPressCancel();
+  });
+  // בנייד לחיצה ארוכה פותחת תפריט הקשר של הדפדפן ומכסה את תיבת ההדבקה
+  document.addEventListener('contextmenu', function (e) {
+    if (e.target.closest && e.target.closest('[data-act="link"]')) e.preventDefault();
+  });
   // מעבר בין נייד לדסקטופ משנה את התנהגות התפריט
   window.addEventListener('resize', function () {
     syncTopbarHeight();
@@ -2572,8 +2684,7 @@ var SEED_CONTACTS = [
     if (!el) return;
     if (el.tagName === 'SELECT' || el.type === 'date') return;
     applyEdit(el);
-    if (el.dataset.coll === 'budget') refreshBudgetTotals();
-    if (el.dataset.coll === 'shopping') refreshShopTotals();
+    if (el.dataset.coll === 'budget' || el.dataset.coll === 'shopping') refreshTotals();
   });
   document.addEventListener('change', function (e) {
     var el = e.target.closest('[data-act="edit"]');
@@ -2612,25 +2723,26 @@ var SEED_CONTACTS = [
       var fv = e.target.dataset.filterfor;
       filterBy[fv] = filterBy[fv] || {};
       filterBy[fv][e.target.dataset.field] = e.target.value;
-      render(); return;
+      render();
     }
-    if (e.target.id === 'taskPhase') { viewTasks._ph = e.target.value; render(); return; }
-    if (e.target.id === 'taskDone') { viewTasks._st = e.target.value; render(); }
   });
 
-  function refreshShopTotals() {
-    if (view !== 'shopping') return;
-    var sh = shopStats();
-    var e1 = $('#shopEst'), e2 = $('#shopCost');
-    if (e1) e1.textContent = nis(sh.est);
-    if (e2) e2.textContent = nis(sh.cost);
-  }
-
-  function refreshBudgetTotals() {
-    if (view !== 'budget') return;
-    var bg = budgetStats();
-    var tf = document.querySelector('tfoot tr');
-    if (tf) { tf.children[1].textContent = nis(bg.planned); tf.children[2].textContent = nis(bg.actual); }
+  // מעדכן כל סכום מוצג במקום, בלי לבנות מחדש את המסך – אחרת הפוקוס
+  // היה קופץ מהשדה באמצע ההקלדה. המפתח הוא "מקור:שדה[:מזהה]".
+  function refreshTotals() {
+    var els = document.querySelectorAll('[data-total]');
+    if (!els.length) return;
+    var bg = null, sh = null;
+    [].forEach.call(els, function (n) {
+      var p = String(n.dataset.total).split(':');
+      var kind = p[0], field = p[1], key = p.slice(2).join(':');
+      var src;
+      if (kind === 'bg') src = (bg = bg || budgetStats());
+      else if (kind === 'sh') src = (sh = sh || shopStats());
+      else if (kind === 'bsec') src = sectionStats(key);
+      else if (kind === 'ssec') src = areaStats(key);
+      if (src && src[field] != null) n.textContent = nis(src[field]);
+    });
   }
 
   /* ---------- הדפסת תוויות ---------- */
@@ -2769,6 +2881,7 @@ var SEED_CONTACTS = [
 
   /* ---------- אתחול ---------- */
   state = loadLocal();
+  loadUI();
   render();
   syncTopbarHeight();
   // בדסקטופ התפריט חוזר למצב שבו נשאר. בנייד הוא תמיד מתחיל סגור.
