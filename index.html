@@ -111,8 +111,7 @@ button.brand:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
 .icon-btn{
   border:1px solid var(--line);background:var(--card-2);border-radius:12px;
   width:38px;height:38px;font-size:17px;cursor:pointer;display:grid;place-items:center;
-  /* בלי זה שבב הסנכרון הדו-שורתי מכווץ את כפתורי האייקון במסך צר
-     ושטח הלחיצה יורד מתחת לגודל סביר לאצבע */
+  /* שומר על שטח הלחיצה: בלי זה הסרגל מכווץ את הכפתורים במסך צר */
   flex:none
 }
 .icon-btn:active{transform:scale(.96)}
@@ -122,20 +121,6 @@ button.brand:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
 }
 .chip.on{background:var(--ok-soft);border-color:transparent;color:var(--ok)}
 .chip.err{background:var(--danger-soft);border-color:transparent;color:var(--danger)}
-/* שבב הסנכרון מחזיק שתי שורות: מצב הסנכרון וחותמת הבנייה. שתי השורות
-   צרות מספיק כדי שהשבב לא ירחיב את הסרגל גם במסך של 320 פיקסלים. */
-.chip.sync{
-  display:inline-flex;flex-direction:column;align-items:center;gap:1px;
-  line-height:1.15;padding:5px 10px
-}
-.chip.sync small{
-  font-size:9.5px;opacity:.72;letter-spacing:.2px;
-  font-variant-numeric:tabular-nums;white-space:nowrap
-}
-@media(max-width:480px){
-  .chip.sync{padding:4px 8px;font-size:11px}
-  .chip.sync small{font-size:9px}
-}
 
 /* ---- Search bar ---- */
 .searchbar{
@@ -163,6 +148,7 @@ button.brand:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
 /* ---- Drawer (תפריט צד) ---- */
 .drawer{
   position:fixed;top:0;right:0;bottom:0;z-index:70;
+  display:flex;flex-direction:column;
   width:270px;max-width:84vw;
   background:var(--card);border-inline-start:1px solid var(--line);
   box-shadow:-12px 0 32px rgba(15,23,42,.18);
@@ -186,7 +172,9 @@ button.brand:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
   display:flex;align-items:center;gap:12px;width:100%;
   border:0;background:transparent;border-radius:12px;
   padding:11px 12px;margin-bottom:2px;cursor:pointer;
-  color:var(--text);font-size:14.5px;font-weight:500;text-align:start
+  color:var(--text);font-size:14.5px;font-weight:500;text-align:start;
+  /* התפריט הוא עמודת flex; בלי זה הפריטים נמעכים כשיש הרבה מהם */
+  flex:none
 }
 .nav-item i{font-style:normal;font-size:19px;line-height:1;flex:none}
 .nav-item .count{
@@ -199,6 +187,14 @@ button.brand:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
 :root[data-theme="dark"] .nav-item.active{color:var(--brand)}
 .nav-item.active .count{background:transparent}
 .nav-item:focus-visible{outline:2px solid var(--brand);outline-offset:-2px}
+/* חותמת הבנייה יושבת בתחתית התפריט. margin-top:auto דוחף אותה לקצה
+   התחתון כשהרשימה קצרה, ומשאיר אותה אחרי הפריטים כשהיא ארוכה. */
+.drawer-foot{
+  margin-top:auto;padding:9px 12px 2px;
+  border-top:1px solid var(--line);
+  font-size:11px;color:var(--muted);
+  font-variant-numeric:tabular-nums;letter-spacing:.2px
+}
 .scrim{position:fixed;inset:0;z-index:60;background:rgba(15,23,42,.5)}
 
 /* ---- Layout ---- */
@@ -540,10 +536,7 @@ body.dragging-active .rank{cursor:grabbing}
     <strong>ניהול מעבר דירה</strong>
   </button>
   <span class="spacer"></span>
-  <button class="chip sync" id="syncBadge" type="button" title="מצב סנכרון">
-    <span id="syncState">● מקומי</span>
-    <small id="buildStamp"></small>
-  </button>
+  <button class="chip" id="syncBadge" type="button" title="מצב סנכרון">● מקומי</button>
   <button class="icon-btn" id="btnSettings" type="button" title="הגדרות" aria-label="הגדרות">⚙️</button>
 </header>
 
@@ -563,7 +556,7 @@ body.dragging-active .rank{cursor:grabbing}
 <div class="toast hidden" id="toast"></div>
 
 <script>
-window.BUILD_STAMP = "2026-08-18 | 07:28";
+window.BUILD_STAMP = "2026-08-18 | 07:40";
 </script>
 <script>
 /* ===== נתוני ברירת מחדל – רשימות מוכנות לעברית =====
@@ -1039,24 +1032,14 @@ var SEED_CONTACTS = [
 
   function setSyncBadge(txt, cls) {
     var b = $('#syncBadge');
-    // רק שורת המצב מתחלפת. חותמת הבנייה היא אח שלה בתוך אותו שבב
-    // ולכן אסור לכתוב כאן ל-textContent של הכפתור עצמו.
-    $('#syncState').textContent = '● ' + txt;
-    b.className = 'chip sync' + (cls ? ' ' + cls : '');
+    b.textContent = '● ' + txt;
+    b.className = 'chip' + (cls ? ' ' + cls : '');
   }
 
-  // חותמת הבנייה מוזרקת בזמן הבנייה כ-window.BUILD_STAMP. בגרסת הפיתוח
-  // (שלושה קבצים, בלי שלב בנייה) אין חותמת, ואז מוצג "פיתוח" – כך אי אפשר
-  // לבלבל בין מה שרץ מקומית לבין מה שפורסם באתר.
+  // חותמת הבנייה מוזרקת בזמן הבנייה כ-window.BUILD_STAMP, ומוצגת בתחתית
+  // תפריט הצד. בגרסת הפיתוח (שלושה קבצים, בלי שלב בנייה) אין חותמת ואז
+  // מוצג "גרסת פיתוח", כדי שלא תתבלבל עם מה שפורסם באתר.
   var BUILD_STAMP = window.BUILD_STAMP || '';
-  function showBuildStamp() {
-    var el = $('#buildStamp');
-    if (!el) return;
-    el.textContent = BUILD_STAMP || 'פיתוח';
-    $('#syncBadge').title = BUILD_STAMP
-      ? 'מצב סנכרון · נבנה ב־' + BUILD_STAMP
-      : 'מצב סנכרון · גרסת פיתוח מקומית';
-  }
 
   async function initCloud() {
     if (ARTIFACT) { setSyncBadge('נשמר במכשיר'); return; }
@@ -2070,7 +2053,9 @@ var SEED_CONTACTS = [
         return '<button class="nav-item' + (t.id === view ? ' active' : '') + '" data-tab="' + t.id + '">' +
           '<i>' + t.icon + '</i>' + esc(t.fullLabel || t.label) +
           (c ? '<span class="count">' + c + '</span>' : '') + '</button>';
-      }).join('');
+      }).join('') +
+      '<div class="drawer-foot" title="גרסת הבנייה המוצגת כרגע">' +
+      (BUILD_STAMP ? 'נבנה ' + esc(BUILD_STAMP) : 'גרסת פיתוח') + '</div>';
   }
 
   // מצב המגירה נקרא תמיד מה-DOM עצמו, כדי שלא ייווצר פער בין משתנה למציאות
@@ -3018,7 +3003,6 @@ var SEED_CONTACTS = [
   /* ---------- אתחול ---------- */
   state = loadLocal();
   loadUI();
-  showBuildStamp();
   render();
   syncTopbarHeight();
   // בדסקטופ התפריט חוזר למצב שבו נשאר. בנייד הוא תמיד מתחיל סגור.
