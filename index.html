@@ -34,6 +34,10 @@
   --danger-soft:#fee2e2;
   --radius:16px;
   --shadow:0 1px 2px rgba(15,23,42,.06),0 8px 24px rgba(15,23,42,.06);
+  /* מדרג המותג של כרטיס ספירת הימים בסקירה. קבוע בשני מצבי התצוגה בכוונה,
+     ולכן הוא לא מוגדר מחדש בבלוק של מצב לילה: שם ‎--brand‎ הופך למנטה זוהרת,
+     ומילוי מלא שלה על שטח גדול מסנוור. כל משטח מותג מלא משתמש בו. */
+  --brand-grad:linear-gradient(135deg,#0f766e 0%,#155e75 100%);
 }
 /* מצב לילה: לפי העדפת המערכת, אלא אם המשתמש בחר ידנית מצב יום */
 @media (prefers-color-scheme: dark){
@@ -106,7 +110,10 @@ button.brand:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
 }
 .icon-btn{
   border:1px solid var(--line);background:var(--card-2);border-radius:12px;
-  width:38px;height:38px;font-size:17px;cursor:pointer;display:grid;place-items:center
+  width:38px;height:38px;font-size:17px;cursor:pointer;display:grid;place-items:center;
+  /* בלי זה שבב הסנכרון הדו-שורתי מכווץ את כפתורי האייקון במסך צר
+     ושטח הלחיצה יורד מתחת לגודל סביר לאצבע */
+  flex:none
 }
 .icon-btn:active{transform:scale(.96)}
 .chip{
@@ -115,6 +122,20 @@ button.brand:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
 }
 .chip.on{background:var(--ok-soft);border-color:transparent;color:var(--ok)}
 .chip.err{background:var(--danger-soft);border-color:transparent;color:var(--danger)}
+/* שבב הסנכרון מחזיק שתי שורות: מצב הסנכרון וחותמת הבנייה. שתי השורות
+   צרות מספיק כדי שהשבב לא ירחיב את הסרגל גם במסך של 320 פיקסלים. */
+.chip.sync{
+  display:inline-flex;flex-direction:column;align-items:center;gap:1px;
+  line-height:1.15;padding:5px 10px
+}
+.chip.sync small{
+  font-size:9.5px;opacity:.72;letter-spacing:.2px;
+  font-variant-numeric:tabular-nums;white-space:nowrap
+}
+@media(max-width:480px){
+  .chip.sync{padding:4px 8px;font-size:11px}
+  .chip.sync small{font-size:9px}
+}
 
 /* ---- Search bar ---- */
 .searchbar{
@@ -134,7 +155,10 @@ button.brand:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
   background:var(--brand-soft);color:var(--brand-ink);
   border-radius:12px;padding:8px 12px;font-size:13px;margin-bottom:12px
 }
-@media (prefers-color-scheme: dark){.search-note{color:var(--brand)}}
+/* אותו זוג כללים כמו במשתני השורש: פעם לפי העדפת המערכת (אלא אם נבחר
+   בהיר ידנית), ופעם לבחירה ידנית בכהה – כדי שהבחירה תגבר בשני הכיוונים */
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .search-note{color:var(--brand)}}
+:root[data-theme="dark"] .search-note{color:var(--brand)}
 
 /* ---- Drawer (תפריט צד) ---- */
 .drawer{
@@ -171,7 +195,8 @@ button.brand:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
 }
 .nav-item:hover{background:var(--card-2)}
 .nav-item.active{background:var(--brand-soft);color:var(--brand-ink)}
-@media (prefers-color-scheme: dark){.nav-item.active{color:var(--brand)}}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .nav-item.active{color:var(--brand)}}
+:root[data-theme="dark"] .nav-item.active{color:var(--brand)}
 .nav-item.active .count{background:transparent}
 .nav-item:focus-visible{outline:2px solid var(--brand);outline-offset:-2px}
 .scrim{position:fixed;inset:0;z-index:60;background:rgba(15,23,42,.5)}
@@ -199,7 +224,7 @@ button.brand:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
 /* הכרטיס העליון מחזיק טקסט לבן תמיד, ולכן צבעיו קבועים ולא נגזרים מהערכת נושא –
    ב'מצב לילה' ‎--brand‎ הופך למנטה בהירה והטקסט הלבן היה נבלע בו */
 .hero{
-  background:linear-gradient(135deg,#0f766e 0%,#155e75 100%);
+  background:var(--brand-grad);
   color:#fff;border:0
 }
 /* ‎!important‎ נדרש כאן: כשהדף מוגש בתוך מסגרת מתארחת, סביבת ההרצה מזריקה
@@ -262,7 +287,10 @@ label.f{display:flex;flex-direction:column;gap:5px;font-size:12px;color:var(--mu
   padding:9px 14px;cursor:pointer;font-weight:500;white-space:nowrap
 }
 .btn:active{transform:scale(.98)}
-.btn.primary{background:var(--brand);border-color:transparent;color:#fff}
+/* אותו מדרג של כרטיס הספירה, במקום מילוי מנטה מלא שהיה מסנוור במצב לילה */
+.btn.primary{background:var(--brand-grad);border-color:transparent;color:#fff}
+.btn:disabled{opacity:.5;cursor:default}
+.btn:disabled:active{transform:none}
 .btn.ghost{background:transparent}
 .btn.danger{background:var(--danger-soft);border-color:transparent;color:var(--danger)}
 .btn.sm{padding:6px 10px;font-size:12.5px}
@@ -372,7 +400,7 @@ select.mini.urgent{background:var(--warn-soft);color:var(--warn);border-color:tr
 /* ---- Box cards ---- */
 .box{background:var(--card-2);border:1px solid var(--line);border-radius:14px;padding:10px;display:flex;gap:10px}
 .box .num{
-  flex:none;width:46px;height:46px;border-radius:12px;background:var(--brand);color:#fff;
+  flex:none;width:46px;height:46px;border-radius:12px;background:var(--brand-grad);color:#fff;
   display:grid;place-items:center;font-weight:700;font-size:17px
 }
 .box .body{flex:1;min-width:0;display:flex;flex-direction:column;gap:7px}
@@ -406,6 +434,18 @@ tfoot td{font-weight:700;border-bottom:0}
 .sect{border-top:1px solid var(--line);margin-top:14px;padding-top:14px}
 .sect h3{font-size:13.5px;margin-bottom:8px}
 
+/* ---- בחירת ערכת נושא ---- */
+/* שלוש אפשרויות ברוחב שווה, כדי שייראו כבורר אחד ולא כשלושה כפתורים */
+.themepick{gap:6px}
+.theme-opt{flex:1 1 0;min-width:0;white-space:nowrap;text-align:center}
+.theme-opt.active{
+  background:var(--brand-soft);border-color:var(--brand);
+  color:var(--brand-ink);font-weight:600
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .theme-opt.active{color:var(--brand)}}
+:root[data-theme="dark"] .theme-opt.active{color:var(--brand)}
+@media(max-width:480px){.theme-opt{font-size:12px;padding:6px 5px}}
+
 /* ---- Toast ---- */
 .toast{
   position:fixed;z-index:100;bottom:calc(26px + env(safe-area-inset-bottom));inset-inline:0;margin:0 auto;
@@ -437,7 +477,8 @@ tfoot td{font-weight:700;border-bottom:0}
 /* כפתור הניקוי יושב בסוף אותה שורה, בגובה השדות ולא בגובה התוויות */
 .clearfilt{flex:0 0 auto;align-self:flex-end;white-space:nowrap}
 .clearfilt.on{background:var(--brand-soft);border-color:transparent;color:var(--brand-ink)}
-@media (prefers-color-scheme: dark){.clearfilt.on{color:var(--brand)}}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .clearfilt.on{color:var(--brand)}}
+:root[data-theme="dark"] .clearfilt.on{color:var(--brand)}
 @media(max-width:480px){
   .toolbar{padding:8px 10px}
   .toolbar .row{gap:6px}
@@ -446,6 +487,18 @@ tfoot td{font-weight:700;border-bottom:0}
   /* אותו רוחב כמו שדה סינון, כדי שהכפתור ימלא את החצי הריק בשורה
      האחרונה במקום לתפוס שורה שלמה לעצמו */
   .clearfilt{flex:1 1 46%;font-size:12px;padding:6px 8px}
+}
+
+/* ---- שורת לוח השנה ---- */
+/* כרטיס בגובה שורה אחת: שני כפתורים ומידע זעיר לצידם, בלי כותרת ובלי
+   פסקאות הסבר. הוא יושב בראש מסך המשימות ואסור לו לדחוף את הרשימה למטה. */
+.calbar{display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:8px 10px}
+.calbar .cal-meta{font-size:11.5px;color:var(--muted);white-space:nowrap}
+.calbar .cal-msg{font-size:11.5px;color:var(--brand);flex:1 1 100%}
+@media(max-width:480px){
+  .calbar{gap:5px;padding:6px 8px}
+  .calbar .btn.sm{padding:5px 8px;font-size:11.5px}
+  .calbar .cal-meta{font-size:10.5px}
 }
 
 /* ---- כפתור קישור ---- */
@@ -457,7 +510,8 @@ tfoot td{font-weight:700;border-bottom:0}
   -webkit-touch-callout:none
 }
 .linkbtn.has{background:var(--brand-soft);border-color:transparent;color:var(--brand-ink)}
-@media (prefers-color-scheme: dark){.linkbtn.has{color:var(--brand)}}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .linkbtn.has{color:var(--brand)}}
+:root[data-theme="dark"] .linkbtn.has{color:var(--brand)}
 .shopmeta .linkbtn{padding:5px 9px;font-size:12px}
 @media(max-width:480px){.shopmeta .linkbtn{padding:4px 7px;font-size:11.5px}}
 
@@ -486,7 +540,10 @@ body.dragging-active .rank{cursor:grabbing}
     <strong>ניהול מעבר דירה</strong>
   </button>
   <span class="spacer"></span>
-  <button class="chip" id="syncBadge" type="button" title="מצב סנכרון">● מקומי</button>
+  <button class="chip sync" id="syncBadge" type="button" title="מצב סנכרון">
+    <span id="syncState">● מקומי</span>
+    <small id="buildStamp"></small>
+  </button>
   <button class="icon-btn" id="btnSettings" type="button" title="הגדרות" aria-label="הגדרות">⚙️</button>
 </header>
 
@@ -505,6 +562,9 @@ body.dragging-active .rank{cursor:grabbing}
 <div class="overlay hidden" id="overlay"></div>
 <div class="toast hidden" id="toast"></div>
 
+<script>
+window.BUILD_STAMP = "2026-08-18 | 07:28";
+</script>
 <script>
 /* ===== נתוני ברירת מחדל – רשימות מוכנות לעברית =====
    מותאם למעבר לדירה בשכירות + הקמת בית ראשון (קונים כמעט הכול מחדש).
@@ -847,6 +907,29 @@ var SEED_CONTACTS = [
   // גרסה מתארחת (Artifact) – בלי סנכרון ענן, הכול נשמר במכשיר
   var ARTIFACT = !!window.ARTIFACT_MODE;
 
+  /* ---------- ערכת נושא ---------- */
+  // שלושה מצבים: 'auto' הולך אחרי הגדרת המערכת (וזו ברירת המחדל, כמו
+  // שהאפליקציה התנהגה מאז ומתמיד), ו-'light'/'dark' גוברים עליה.
+  // נשמר במכשיר ולא ב-state: זו העדפת תצוגה, ואין סיבה שבחירת כהה בטלפון
+  // תכפה כהה גם על המחשב. הבחירה שורדת רענון, סגירה והתחברות מחדש.
+  var LS_THEME = 'afula_move_theme';
+  function themeMode() {
+    var t = safeLS.get(LS_THEME);
+    return (t === 'light' || t === 'dark') ? t : 'auto';
+  }
+  function applyTheme() {
+    var m = themeMode();
+    if (m === 'auto') document.documentElement.removeAttribute('data-theme');
+    else document.documentElement.setAttribute('data-theme', m);
+  }
+  function setTheme(m) {
+    if (m === 'auto') safeLS.del(LS_THEME);
+    else safeLS.set(LS_THEME, m);
+    applyTheme();
+  }
+  // מוחל מיד, לפני בניית המסך, כדי שלא תהיה הבזקה של הערכה הלא נכונה
+  applyTheme();
+
   /* ---------- מצב ---------- */
   function defaultState() {
     return {
@@ -956,8 +1039,23 @@ var SEED_CONTACTS = [
 
   function setSyncBadge(txt, cls) {
     var b = $('#syncBadge');
-    b.textContent = '● ' + txt;
-    b.className = 'chip' + (cls ? ' ' + cls : '');
+    // רק שורת המצב מתחלפת. חותמת הבנייה היא אח שלה בתוך אותו שבב
+    // ולכן אסור לכתוב כאן ל-textContent של הכפתור עצמו.
+    $('#syncState').textContent = '● ' + txt;
+    b.className = 'chip sync' + (cls ? ' ' + cls : '');
+  }
+
+  // חותמת הבנייה מוזרקת בזמן הבנייה כ-window.BUILD_STAMP. בגרסת הפיתוח
+  // (שלושה קבצים, בלי שלב בנייה) אין חותמת, ואז מוצג "פיתוח" – כך אי אפשר
+  // לבלבל בין מה שרץ מקומית לבין מה שפורסם באתר.
+  var BUILD_STAMP = window.BUILD_STAMP || '';
+  function showBuildStamp() {
+    var el = $('#buildStamp');
+    if (!el) return;
+    el.textContent = BUILD_STAMP || 'פיתוח';
+    $('#syncBadge').title = BUILD_STAMP
+      ? 'מצב סנכרון · נבנה ב־' + BUILD_STAMP
+      : 'מצב סנכרון · גרסת פיתוח מקומית';
   }
 
   async function initCloud() {
@@ -1336,9 +1434,17 @@ var SEED_CONTACTS = [
   function editLink(collName, id) {
     var it = findItem(collName, id);
     if (!it) return;
-    var v = prompt('הדביקו כאן קישור (גוגל דרייב, גוגל תמונות, אתר החנות…)\nלמחיקת הקישור: מוחקים את השורה ומאשרים.',
-      it.link || '');
-    if (v === null) return;
+    var v;
+    // סביבות מתארחות (iframe בארגז חול, וגם חלק מדפדפני התצוגה) חוסמות
+    // חלונות דו-שיח של הדפדפן, ואז prompt זורק שגיאה במקום להחזיר ערך.
+    try {
+      v = prompt('הדביקו כאן קישור (גוגל דרייב, גוגל תמונות, אתר החנות…)\nלמחיקת הקישור: מוחקים את השורה ומאשרים.',
+        it.link || '');
+    } catch (e) {
+      toast('עריכת קישורים אינה זמינה בגרסה הזו');
+      return;
+    }
+    if (v === null || v === undefined) return;
     v = v.trim();
     // הדבקה מהדפדפן לרוב כוללת את הפרוטוקול, אבל לא תמיד – משלימים אותו
     if (v && !/^https?:\/\//i.test(v)) v = 'https://' + v;
@@ -1488,20 +1594,25 @@ var SEED_CONTACTS = [
       '<button class="btn primary" data-act="add-task">הוסף</button></div></div>';
 
     // --- סנכרון ללוח שנה ---
+    // שורה אחת דקה. הכותרת והמשפטים ירדו – שני הכפתורים מסבירים את עצמם,
+    // ושאר המידע נדחס לשורת מטא זעירה לצידם.
     if (!ARTIFACT) {
       var syncable = state.tasks.filter(gcalEligible).length;
       var last = state.settings.calendarSyncedAt;
-      h += '<div class="card"><h2>לוח שנה <span class="sub">' + syncable + ' משימות עם תאריך יעד</span></h2>' +
-        '<div class="row">' +
-        '<button class="btn primary" data-act="gcal-sync"' + (gcalBusy ? ' disabled' : '') + '>' +
-        (gcalBusy ? '⏳ מסנכרן…' : '🗓️ סנכרן ללוח שנה') + '</button>' +
-        '<button class="btn" data-act="gcal-pull"' + (gcalBusy ? ' disabled' : '') + '>' +
-        '🗓️ סנכרן מלוח שנה</button>' +
-        (last && !gcalBusy ? '<span class="small muted">עודכן לאחרונה: ' +
-          new Intl.DateTimeFormat('he-IL', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(last)) +
-          '</span>' : '') +
-        '</div>' +
-        (gcalMsg ? '<div class="small" style="margin-top:8px">' + esc(gcalMsg) + '</div>' : '') +
+      // מחרוזת מטא אחת וקצרה, כדי שהכול יישאר בשורה אחת גם בנייד:
+      // לפני הסנכרון הראשון – כמה משימות ייכנסו; אחריו – מתי היה.
+      var calMeta = last && !gcalBusy
+        ? 'עודכן ' + new Intl.DateTimeFormat('he-IL', {
+            day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'
+          }).format(new Date(last))
+        : syncable + ' עם תאריך';
+      h += '<div class="card calbar">' +
+        '<button class="btn sm primary" data-act="gcal-sync"' + (gcalBusy ? ' disabled' : '') + '>' +
+        (gcalBusy ? '⏳ מסנכרן…' : '🗓️ ללוח שנה') + '</button>' +
+        '<button class="btn sm" data-act="gcal-pull"' + (gcalBusy ? ' disabled' : '') + '>' +
+        '📥 מלוח שנה</button>' +
+        '<span class="cal-meta">' + esc(calMeta) + '</span>' +
+        (gcalMsg ? '<span class="cal-msg">' + esc(gcalMsg) + '</span>' : '') +
         '</div>';
     }
 
@@ -2770,6 +2881,12 @@ var SEED_CONTACTS = [
   }
 
   /* ---------- הגדרות ---------- */
+  function themeOpt(val, label) {
+    return '<button class="btn sm theme-opt' + (themeMode() === val ? ' active' : '') +
+      '" type="button" data-s="theme" data-val="' + val + '"' +
+      ' aria-pressed="' + (themeMode() === val ? 'true' : 'false') + '">' + label + '</button>';
+  }
+
   function openSettings() {
     var s = state.settings;
     var ov = $('#overlay');
@@ -2800,6 +2917,15 @@ var SEED_CONTACTS = [
           '<div class="row"><button class="btn primary" data-s="signin">התחברות עם Google</button></div>'
       ) + '</div>') +
 
+      '<div class="sect"><h3>מראה</h3>' +
+      '<div class="row themepick">' +
+      themeOpt('auto', '🖥️ לפי המערכת') +
+      themeOpt('light', '☀️ בהיר') +
+      themeOpt('dark', '🌙 כהה') +
+      '</div>' +
+      '<div class="small muted" style="margin-top:6px">הבחירה נשמרת במכשיר הזה ונשארת גם אחרי סגירת האפליקציה ' +
+      'והתחברות מחדש. "לפי המערכת" מתחלף לבד יחד עם מצב הלילה של הטלפון.</div></div>' +
+
       '<div class="sect"><h3>גיבוי</h3><div class="row">' +
       '<button class="btn" data-s="export">⬇️ ייצוא לקובץ</button>' +
       '<button class="btn" data-s="import">⬆️ ייבוא מקובץ</button>' +
@@ -2826,6 +2952,16 @@ var SEED_CONTACTS = [
         s.fromAddr = $('#stFrom').value;
         s.toAddr = $('#stTo').value;
         save(); render(); ov.classList.add('hidden'); toast('נשמר');
+      }
+      else if (a === 'theme') {
+        setTheme(b.dataset.val);
+        // הגיליון נשאר פתוח; רק סימון הבחירה מתעדכן במקום, כדי שאפשר יהיה
+        // להשוות בין בהיר לכהה בלי לצאת ולהיכנס שוב
+        [].forEach.call(ov.querySelectorAll('.theme-opt'), function (x) {
+          var on = x.dataset.val === themeMode();
+          x.classList.toggle('active', on);
+          x.setAttribute('aria-pressed', on ? 'true' : 'false');
+        });
       }
       else if (a === 'signin') { ov.classList.add('hidden'); signIn(); }
       else if (a === 'signout') { ov.classList.add('hidden'); signOutNow(); }
@@ -2882,6 +3018,7 @@ var SEED_CONTACTS = [
   /* ---------- אתחול ---------- */
   state = loadLocal();
   loadUI();
+  showBuildStamp();
   render();
   syncTopbarHeight();
   // בדסקטופ התפריט חוזר למצב שבו נשאר. בנייד הוא תמיד מתחיל סגור.
