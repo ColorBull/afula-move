@@ -1,0 +1,22 @@
+# קובץ בדיקה מקומי בלבד – נוצר ע"י build_artifact.py
+*.preview.html
+
+# תיקיית ההפצה לגרירה לשירותי אירוח – נבנית מחדש, לא צריך לעקוב אחריה
+dist/
+
+# Windows / Google Drive
+Thumbs.db
+desktop.ini
+.DS_Store
+index-single.html
+
+# מפתח שירות של Firebase - סוד! נותן גישה מלאה לפרויקט.
+# המאגר ציבורי, ולכן הקובץ הזה לעולם לא נכנס אליו.
+service-account.json
+mcp-server/service-account.json
+*serviceAccount*.json
+*-firebase-adminsdk-*.json
+
+# Python
+__pycache__/
+*.pyc

@@ -1,0 +1,22 @@
+rules_version = '2';
+
+// לוח התכנון של כל משתמש נשמר במסמך יחיד בנתיב moves/{uid},
+// כאשר uid הוא המזהה של חשבון ה-Google שאיתו התחברו.
+//
+// המשמעות: משתמש מחובר יכול לקרוא ולכתוב אך ורק את המסמך שלו עצמו.
+// אין דרך לגשת למסמך של מישהו אחר, גם אם מנחשים את המזהה שלו,
+// וגולש לא מחובר לא מקבל שום גישה.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    match /moves/{uid} {
+      allow read, write: if request.auth != null
+                         && request.auth.uid == uid;
+    }
+
+    // כל שאר מסד הנתונים חסום
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

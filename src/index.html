@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>ניהול מעבר דירה</title>
+<meta name="theme-color" content="#0f766e">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="ניהול מעבר דירה">
+<link rel="manifest" href="./manifest.json">
+<link rel="icon" href="./icon.svg">
+<link rel="apple-touch-icon" href="./icon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+
+<header class="topbar">
+  <button class="icon-btn" id="btnMenu" type="button" aria-label="פתיחת התפריט"
+          aria-expanded="false" aria-controls="drawer">☰</button>
+  <button class="brand" id="btnBrand" type="button" data-tab="dash" title="מעבר למסך הסקירה">
+    <span class="brand-icon" aria-hidden="true">🏡</span>
+    <strong>ניהול מעבר דירה</strong>
+  </button>
+  <span class="spacer"></span>
+  <button class="chip" id="syncBadge" type="button" title="מצב סנכרון">● מקומי</button>
+  <button class="icon-btn" id="btnSettings" type="button" title="הגדרות" aria-label="הגדרות">⚙️</button>
+</header>
+
+<div class="searchbar">
+  <span class="search-ico" aria-hidden="true">🔍</span>
+  <input id="globalSearch" type="search" autocomplete="off"
+         placeholder="חיפוש משימות, קניות, ארגזים, אנשי קשר…" aria-label="חיפוש">
+  <button class="x hidden" id="searchClear" type="button" aria-label="ניקוי החיפוש">✕</button>
+</div>
+
+<nav class="drawer" id="drawer" aria-label="ניווט ראשי" aria-hidden="true"></nav>
+<div class="scrim hidden" id="scrim"></div>
+
+<main id="views" class="views"></main>
+
+<div class="overlay hidden" id="overlay"></div>
+<div class="toast hidden" id="toast"></div>
+
+<script src="./data.js"></script>
+<script src="./app.js"></script>
+</body>
+</html>
