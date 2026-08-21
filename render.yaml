@@ -1,0 +1,26 @@
+# Render Blueprint – שירות ה-MCP של "ניהול מעבר דירה".
+#
+# חשוב: את קובץ המפתח service-account.json אי אפשר להצהיר כאן. יש להעלות
+# אותו ידנית בלוח הבקרה של Render תחת Environment ← Secret Files, בשם
+# service-account.json, והוא ייטען אוטומטית אל /etc/secrets/.
+services:
+  - type: web
+    name: afula-move-mcp
+    runtime: docker
+    plan: free
+    region: frankfurt
+    rootDir: mcp-server
+    dockerfilePath: ./Dockerfile
+    envVars:
+      - key: MCP_TRANSPORT
+        value: streamable-http
+      # גם המזהה נשאל בזמן ההקמה - אין סיבה לפרסם אותו במאגר ציבורי.
+      - key: AFULA_MOVE_UID
+        sync: false
+      # נתיב ההרכבה של Secret Files ב-Render.
+      - key: AFULA_SA_KEY
+        value: /etc/secrets/service-account.json
+      # sync: false גורם ל-Render לבקש את הערך בזמן ההקמה, כדי שהסוד
+      # לא יישמר בקובץ הזה.
+      - key: AFULA_MCP_TOKEN
+        sync: false
