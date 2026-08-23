@@ -110,6 +110,23 @@ opens it, long press (550ms) opens `prompt()` to paste or clear it. The `linkPre
 suppresses the click that browsers fire after a long press. There is no visible URL input —
 a full-width link field ate a row and showed text nobody reads.
 
+### Date fields
+
+`<input type="date">` renders its text in the **browser's own locale**, not the page's
+`lang="he"` — so the same task showed `21/08/2026` on a Hebrew desktop and `08/21/2026` on an
+English-language phone. The format cannot be overridden. `dateField(value, attrs)` wraps the
+input in `.datef` and paints our own `dd/mm/yyyy` label (`.dtxt`) over the native text, which
+is made `color:transparent`. The input itself stays in flow, keeps its native width and its
+calendar button, and still stores plain ISO. On mouse + fine-pointer devices the native text
+comes back on `:focus` so keyboard entry stays visible; on touch it never does.
+
+The label is re-synced by `syncDateText()` from capture-phase `input`/`change` listeners, not
+by `render()` — the settings sheet has a date field with no re-render behind it.
+
+Use `dateField()` for **every** new date field; a bare `<input type="date">` reintroduces the
+split. `fmtDateNum()` formats straight off the ISO string, deliberately avoiding `Intl` and
+`Date` so neither system language nor timezone can shift it.
+
 ### Live totals
 
 `refreshTotals()` rewrites every `[data-total="source:field[:id]"]` element in place on `input`,
