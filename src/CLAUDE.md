@@ -110,6 +110,23 @@ opens it, long press (550ms) opens `prompt()` to paste or clear it. The `linkPre
 suppresses the click that browsers fire after a long press. There is no visible URL input —
 a full-width link field ate a row and showed text nobody reads.
 
+### Date fields
+
+`<input type="date">` renders its text in the **browser's own locale**, not the page's
+`lang="he"` — so the same task showed `21/08/2026` on a Hebrew desktop and `08/21/2026` on an
+English-language phone. The format cannot be overridden. `dateField(value, attrs)` wraps the
+input in `.datef` and paints our own `dd/mm/yyyy` label (`.dtxt`) over the native text, which
+is made `color:transparent`. The input itself stays in flow, keeps its native width and its
+calendar button, and still stores plain ISO. On mouse + fine-pointer devices the native text
+comes back on `:focus` so keyboard entry stays visible; on touch it never does.
+
+The label is re-synced by `syncDateText()` from capture-phase `input`/`change` listeners, not
+by `render()` — the settings sheet has a date field with no re-render behind it.
+
+Use `dateField()` for **every** new date field; a bare `<input type="date">` reintroduces the
+split. `fmtDateNum()` formats straight off the ISO string, deliberately avoiding `Intl` and
+`Date` so neither system language nor timezone can shift it.
+
 ### Live totals
 
 `refreshTotals()` rewrites every `[data-total="source:field[:id]"]` element in place on `input`,
@@ -120,33 +137,51 @@ Sources: `bg` (budgetStats), `sh` (shopStats), `bsec` (sectionStats), `ssec` (ar
 
 ## Build and deploy
 
+There are **two** environments, and they publish differently. Work out which one you are in
+before doing anything: if `git remote -v` prints a remote, you are in a Claude Code session.
+
+### In a Claude Code session — plain git, no web editor
+
+The source lives under `src/`, and the remote works. The whole loop:
+
 ```bash
-cd "G:/My Drive/05_AI/Claude/Code/afula-move" && PYTHONIOENCODING=utf-8 python build_single.py
+cd src && PYTHONIOENCODING=utf-8 python3 build_single.py && cp index-single.html ../index.html
+cd .. && git add -A && git commit -m "…" && git push -u origin <branch>
 ```
 
-`PYTHONIOENCODING=utf-8` is required — the script prints Hebrew and Windows' default codepage
-raises `UnicodeEncodeError` without it.
+Then open a PR and merge to `main` — Pages serves the root `index.html` from `main`, so a
+commit on a feature branch is not live yet.
 
-Then copy `index-single.html` to the clipboard and paste it over
-https://github.com/ColorBull/afula-move/edit/main/index.html
+A `403` with *"Claude doesn't have GitHub access to ColorBull/afula-move for your
+organization"* on push is an authorization gap, not a network error: retrying will not fix it.
+The user has to install the GitHub App or reconnect GitHub from claude.ai settings. Do not
+fall back to the web-editor flow below — hand them the built file and wait.
+
+### On the user's own machine — web editor
+
+Source files sit at the repo root there, not under `src/`, and **that clone has no git
+remote**: commits are history-keeping only and never reach GitHub.
 
 ```bash
+cd "G:/My Drive/05_AI/Claude/Code/afula-move" && PYTHONIOENCODING=utf-8 python build_single.py
 powershell -c "Get-Content -Raw -Encoding UTF8 index-single.html | Set-Clipboard"
 ```
 
-Two things that trip this up every time:
-
-1. **The local repo has no git remote.** Local commits are history-keeping only; they do not
-   reach GitHub. Publishing happens exclusively through the web editor.
-2. **`index.html` means two different things.** Locally it's the 50-line shell. In the GitHub
-   repo it's the full inlined single-file build. Never paste the local `index.html` to GitHub,
-   and never copy the GitHub one back down.
-
-`index-single.html` is gitignored — it is a build output, rebuilt on demand.
+`PYTHONIOENCODING=utf-8` is required — the script prints Hebrew and Windows' default codepage
+raises `UnicodeEncodeError` without it. Then paste over
+https://github.com/ColorBull/afula-move/edit/main/index.html
 
 When driving the GitHub web editor: **wait for the commit dialog to actually open and confirm
 it with a screenshot before typing the commit message.** Batching the click with the typing
 once dumped the message into the code editor and corrupted the file.
+
+### `index.html` means two different things
+
+In `src/` (and at the root of the user's own clone) it is the 50-line shell. At the root of
+**this repo** it is the full inlined single-file build. Never commit the shell over the root
+build, and never copy the root build back into `src/`.
+
+`index-single.html` is gitignored — it is a build output, rebuilt on demand.
 
 ### The commit is not the deploy
 

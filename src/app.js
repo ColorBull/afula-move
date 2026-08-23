@@ -26,6 +26,13 @@
     if (isNaN(d)) return '';
     return new Intl.DateTimeFormat('he-IL', { day: 'numeric', month: 'long', year: 'numeric' }).format(d);
   };
+  // תצוגה מספרית קבועה dd/mm/yyyy. נגזרת ישירות ממחרוזת ה-ISO ולא דרך
+  // Intl או Date, כדי שלא תושפע לא משפת המערכת ולא מאזור הזמן.
+  var fmtDateNum = function (iso) {
+    var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso == null ? '' : iso));
+    return m ? m[3] + '/' + m[2] + '/' + m[1] : '';
+  };
+  var DATE_PH = 'dd/mm/yyyy';
   var todayISO = function () {
     var d = new Date();
     return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
@@ -558,6 +565,32 @@
     return 'data-act="edit" data-coll="' + coll + '" data-id="' + id + '" data-field="' + field + '"' + (extra || '');
   }
 
+  // שדה תאריך עם תצוגה אחידה בכל מכשיר.
+  // <input type="date"> מציג את הערך לפי שפת המערכת של הדפדפן ולא לפי
+  // ה-lang של הדף, ולכן אותו תאריך נראה 21/08/2026 במחשב בעברית
+  // ו-08/21/2026 בטלפון שמוגדר באנגלית. אין דרך לכפות פורמט על השדה
+  // המקורי, ולכן הטקסט שלו מוסתר (color:transparent) ומעליו מוצג הכיתוב
+  // שלנו. השדה עצמו נשאר במקומו – הלוח הנפתח והמקלדת עובדים כרגיל,
+  // והערך שנשמר הוא אותו ISO כמו קודם.
+  function dateField(value, attrs) {
+    var v = String(value == null ? '' : value);
+    var txt = fmtDateNum(v);
+    return '<span class="datef">' +
+      '<input type="date" value="' + esc(v) + '"' + (attrs ? ' ' + attrs : '') + '>' +
+      '<span class="dtxt' + (txt ? '' : ' ph') + '" dir="ltr" aria-hidden="true">' +
+      (txt || DATE_PH) + '</span></span>';
+  }
+  // הכיתוב מתעדכן מיד אחרי בחירה. ברוב המסכים ממילא מגיע render() אחרי
+  // שינוי תאריך, אבל לא בכולם (תאריך המעבר בהגדרות למשל), ולכן הסנכרון
+  // יושב על האירוע עצמו ולא על הציור מחדש.
+  function syncDateText(inp) {
+    var span = inp.parentNode && inp.parentNode.querySelector('.dtxt');
+    if (!span) return;
+    var txt = fmtDateNum(inp.value);
+    span.textContent = txt || DATE_PH;
+    span.classList.toggle('ph', !txt);
+  }
+
   // כפתור קישור. שדה קישור מלא תופס שורה שלמה ומציג טקסט שאף אחד לא קורא,
   // ולכן הקישור מתחבא מאחורי כפתור אחד: לחיצה קצרה פותחת, לחיצה ארוכה עורכת.
   function linkBtn(collName, it) {
@@ -803,7 +836,7 @@
           '<select class="phase-sel" aria-label="העברת המשימה לשלב אחר" ' +
           bind('tasks', t.id, 'phase') + '>' + opts(PHASES, t.phase, 'id', 'label') + '</select></span>' +
           '<span class="small muted">יעד:</span>' +
-          '<input type="date" value="' + esc(t.due || '') + '" ' + bind('tasks', t.id, 'due') + '>' +
+          dateField(t.due, bind('tasks', t.id, 'due')) +
           (late ? '<span class="late">באיחור</span>' : '') + '</div></div>' +
           '<button class="x" data-act="del" data-coll="tasks" data-id="' + t.id + '" title="מחיקה">✕</button></div>';
       });
@@ -987,7 +1020,7 @@
         '<div class="row">' +
         '<label class="f">כותרת<input value="' + esc(d.title || '') + '" ' + bind('docs', d.id, 'title') + '></label>' +
         '<label class="f">סוג<select ' + bind('docs', d.id, 'type') + '>' + opts(DOC_TYPES, d.type, 'id', 'label') + '</select></label>' +
-        '<label class="f">תאריך<input type="date" value="' + esc(d.date || '') + '" ' + bind('docs', d.id, 'date') + '></label>' +
+        '<label class="f">תאריך' + dateField(d.date, bind('docs', d.id, 'date')) + '</label>' +
         '<label class="f">' + (d.type === 'meter' ? 'קריאת המונה' : 'מספר / סכום') +
         '<input value="' + esc(d.value || '') + '" ' + bind('docs', d.id, 'value') + '></label>' +
         '</div>' +
@@ -1929,6 +1962,16 @@
     save();
     return true;
   }
+  // capture, כדי שהכיתוב יתעדכן לפני כל מטפל אחר – גם כשאחריו מגיע render()
+  // וגם כשלא.
+  var dateTextSync = function (e) {
+    var el = e.target;
+    if (el && el.type === 'date' && el.parentNode && el.parentNode.classList &&
+      el.parentNode.classList.contains('datef')) syncDateText(el);
+  };
+  document.addEventListener('input', dateTextSync, true);
+  document.addEventListener('change', dateTextSync, true);
+
   document.addEventListener('input', function (e) {
     var el = e.target.closest('[data-act="edit"]');
     if (!el) return;
@@ -2033,7 +2076,7 @@
       '<div class="row"><h2>הגדרות</h2><span class="spacer"></span><button class="x" data-s="close">✕</button></div>' +
 
       '<div class="sect"><h3>פרטי המעבר</h3><div class="row">' +
-      '<label class="f">תאריך המעבר<input type="date" id="stDate" value="' + esc(s.moveDate || '') + '"></label>' +
+      '<label class="f">תאריך המעבר' + dateField(s.moveDate, 'id="stDate"') + '</label>' +
       '<label class="f">חברת הובלה<input id="stMovers" value="' + esc(s.movers || '') + '"></label></div>' +
       '<div class="row" style="margin-top:8px">' +
       '<label class="f">כתובת נוכחית<input id="stFrom" value="' + esc(s.fromAddr || '') + '" placeholder="רחוב, עיר"></label>' +
