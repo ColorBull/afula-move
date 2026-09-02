@@ -202,6 +202,8 @@ button.brand:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
 .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:14px;margin-bottom:12px}
 .card h2{font-size:15px;margin-bottom:10px;display:flex;align-items:center;gap:8px;justify-content:space-between}
 .card h2 .sub{font-size:12px;color:var(--muted);font-weight:400}
+/* כפתור-אייקון בשורת כותרת של כרטיס לא אמור להימתח או לגדול */
+.card h2 .icontoggle{flex:none}
 .grid{display:grid;gap:10px}
 /* רשת שיושבת ישירות במסך צריכה את אותו מרווח תחתון ככרטיס, אחרת
    האלמנט שאחריה נצמד אליה ונראה דחוק */
@@ -278,34 +280,6 @@ input:focus,select:focus,textarea:focus{border-color:var(--brand);box-shadow:0 0
 input[type=checkbox]{width:auto}
 textarea{min-height:60px;resize:vertical}
 label.f{display:flex;flex-direction:column;gap:5px;font-size:12px;color:var(--muted);flex:1 1 150px}
-
-/* ---- שדה תאריך ----
-   הדפדפן מצייר <input type=date> לפי שפת המערכת שלו ולא לפי ה-lang של
-   הדף, ולכן במחשב בעברית התאריך נראה 21/08/2026 ובטלפון באנגלית
-   08/21/2026. אין דרך לכפות פורמט על השדה, ולכן השדה המקורי נשאר במקומו
-   (הלוח הנפתח והמקלדת ממנו) אבל הטקסט שלו שקוף, ומעליו יושב כיתוב משלנו
-   בפורמט קבוע. כל הפורמטים באורך של עשרה תווים, ולכן הרוחב שהדפדפן
-   נותן לשדה מתאים גם לכיתוב שלנו. ראו גם את כלל ה-focus למטה. */
-.datef{position:relative;display:inline-flex;align-items:center;min-width:0;max-width:100%}
-/* השדה נשאר בזרימה ושומר על הרוחב שהדפדפן נותן לו, כולל המקום לאייקון
-   הלוח. כך הכיתוב שלנו יושב בדיוק במקום הטקסט המקורי ולא מתנגש באייקון. */
-.datef>input[type=date]{color:transparent;width:auto;max-width:100%}
-.datef>.dtxt{
-  position:absolute;inset:0;display:flex;align-items:center;
-  pointer-events:none;white-space:nowrap;overflow:hidden;
-  padding:9px 10px;border:1px solid transparent;font:inherit;color:inherit
-}
-.datef>.dtxt.ph{opacity:.55}
-/* במחשב, בזמן עריכה במקלדת, חוזר הטקסט המקורי של השדה – אחרת המשתמש
-   היה מקליד בעיוורון. במסך מגע אין הקלדה כזו (נפתח לוח שנה), ולכן שם
-   הכיתוב שלנו נשאר גלוי תמיד וגם לא מהבהב לפורמט אחר. */
-@media (hover:hover) and (pointer:fine){
-  .datef>input[type=date]:focus{color:inherit}
-  .datef>input[type=date]:focus+.dtxt{visibility:hidden}
-}
-/* בתוך label.f השדה תפס תמיד את כל הרוחב, וכך זה נשאר */
-label.f>.datef{display:flex;width:100%}
-label.f>.datef>input[type=date]{width:100%}
 .btn{
   border:1px solid var(--line);background:var(--card-2);border-radius:10px;
   padding:9px 14px;cursor:pointer;font-weight:500;white-space:nowrap
@@ -332,13 +306,15 @@ label.f>.datef>input[type=date]{width:100%}
 .task:last-child{border-bottom:0}
 .task input[type=checkbox]{margin-top:4px;width:19px;height:19px;accent-color:var(--brand);flex:none}
 .task .t{flex:1;min-width:0}
+/* שורת הכותרת: שם הפריט, 🎁, 🔗 ו-✕ – כולם באותה שורה ובאותו גובה */
+.task > .icontoggle,
+.task > .x{height:26px;width:26px;padding:0;display:grid;place-items:center;margin-top:0}
+.task .t input.title{min-height:26px}
 .task .t input.title{border:0;background:transparent;padding:2px 0;font-weight:500}
 .task.done .t input.title{text-decoration:line-through;color:var(--muted)}
 /* flex-wrap חיוני: בלעדיו שורת הפרטים גולשת מהכרטיס ונחתכת במסך צר */
 .task .meta{display:flex;gap:6px;align-items:center;margin-top:4px;flex-wrap:wrap}
-.task .meta .datef{color:var(--muted);font-size:12px;width:auto;max-width:100%}
-.task .meta .datef>input[type=date]{border:0;background:transparent;padding:0}
-.task .meta .datef>.dtxt{padding:0;border:0}
+.task .meta input[type=date]{border:0;background:transparent;color:var(--muted);font-size:12px;padding:0;width:auto;max-width:100%}
 .task .late{color:var(--danger);font-size:11.5px;font-weight:600}
 
 /* במסך צר כל האלמנטים מתכווצים, כדי שהשורה תישאר קריאה ולא תיחתך */
@@ -351,7 +327,7 @@ label.f>.datef>input[type=date]{width:100%}
   /* שדה תאריך בכרום נוטה לרוחב מינימלי משלו ודוחף את השורה לשבירה.
      flex עם min-width:0 מרשה לו להתכווץ למה שנשאר, כך שהשורה התחתונה
      נשארת שורה אחת גם אחרי שידית הגרירה תפסה מקום */
-  .task .meta .datef{font-size:11.5px;flex:1 1 0;min-width:0}
+  .task .meta input[type=date]{font-size:11.5px;flex:1 1 0;min-width:0}
   .task .late{font-size:11px}
   .x{font-size:15px;padding:3px 5px}
   .shopmeta{gap:5px}
@@ -407,6 +383,18 @@ label.f>.datef>input[type=date]{width:100%}
 }
 .sectotal b{font-variant-numeric:tabular-nums}
 
+/* ---- שורת המצב של סיכום כספי ----
+   כל סיכום מקבל שורה משלו. אין שורת מצב אחת שמערבבת חד-פעמי עם חודשי. */
+.money-note{
+  margin-top:10px;padding:8px 11px;border-radius:10px;
+  font-size:13px;line-height:1.5
+}
+.money-note.ok{background:var(--ok-soft);color:var(--ok)}
+.money-note.warn{background:var(--danger-soft);color:var(--danger)}
+.money-note.note{background:var(--warn-soft);color:var(--warn)}
+.money-note.muted{background:var(--line);color:var(--muted)}
+.money-head h2{margin-bottom:4px}
+
 /* ---- ניהול קטגוריות ---- */
 .seclist{margin-top:12px;border-top:1px solid var(--line)}
 .secrow{
@@ -416,10 +404,41 @@ label.f>.datef>input[type=date]{width:100%}
 .secrow:last-child{border-bottom:0}
 .secrow b{font-size:13.5px}
 
-/* ---- Shopping ---- */
-.shopmeta{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
-.shopmeta .mini{flex:1 1 88px;min-width:78px;padding:5px 7px;font-size:12.5px}
-.shopmeta select.mini{flex:1 1 110px}
+/* ---- שורת השדות הקטנים (קניות ותקציב) ----
+   רשת ולא flex-wrap: ב-flex כל שורה חילקה את הרוחב לפי התוכן שלה, ולכן העמודות
+   של שורות סמוכות לא היו זו מול זו. עם grid לכל שדה יש תא בעל אותו רוחב בכל השורות. */
+.shopmeta{display:grid;gap:6px;margin-top:6px;align-items:center}
+.shopmeta .mini{width:100%;min-width:0;padding:5px 7px;font-size:12.5px}
+/* קניות: עדיפות · משוער · שולם · חנות · קטגוריה */
+.shopmeta.buy{grid-template-columns:1.15fr .9fr .9fr 1fr 1.15fr}
+/* תקציב: מתוכנן · בפועל · קטגוריה · ספק */
+.shopmeta.bud{grid-template-columns:.85fr .85fr 1.1fr 1.5fr}
+.shopmeta .mini:disabled{opacity:.5;cursor:not-allowed}
+/* כפתורי-אייקון של שורה (🎁 מתנה, 🔗 קישור): אפור וכבוי, או צבעוני ודלוק.
+   בלי טקסט ובלי תיבת סימון – המצב נקרא מהאייקון עצמו. */
+.icontoggle{
+  flex:none;display:grid;place-items:center;width:26px;height:26px;padding:0;
+  -webkit-appearance:none;appearance:none;
+  border:0;background:transparent;border-radius:8px;cursor:pointer;
+  font-size:14px;line-height:1;opacity:.3;filter:grayscale(1);
+  transition:opacity .15s,background .15s,filter .15s
+}
+.icontoggle:hover{opacity:.75;filter:grayscale(.25);background:var(--line)}
+.icontoggle.on{opacity:1;filter:none}
+.icontoggle:focus-visible{outline:2px solid var(--brand);outline-offset:1px}
+@media(max-width:820px){
+  .shopmeta.buy{grid-template-columns:repeat(3,1fr)}
+  .shopmeta.bud{grid-template-columns:repeat(2,1fr)}
+}
+@media(max-width:480px){
+  .icontoggle,
+  .task > .icontoggle,
+  .task > .x{width:24px;height:24px;font-size:13px}
+}
+@media(max-width:520px){
+  .shopmeta.buy,
+  .shopmeta.bud{grid-template-columns:repeat(2,1fr)}
+}
 select.mini.urgent{background:var(--warn-soft);color:var(--warn);border-color:transparent;font-weight:600}
 .task.done .shopmeta{opacity:.55}
 
@@ -530,16 +549,11 @@ tfoot td{font-weight:700;border-bottom:0}
 /* ---- כפתור קישור ---- */
 /* אותה התנהגות בכל מקום: לחיצה קצרה פותחת, לחיצה ארוכה עורכת.
    touch-action מונע מהדפדפן להתחיל גלילה/בחירה תוך כדי הלחיצה הארוכה. */
-.linkbtn{
-  flex:0 0 auto;touch-action:manipulation;
+[data-act="link"]{
+  touch-action:manipulation;
   -webkit-user-select:none;user-select:none;
   -webkit-touch-callout:none
 }
-.linkbtn.has{background:var(--brand-soft);border-color:transparent;color:var(--brand-ink)}
-@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .linkbtn.has{color:var(--brand)}}
-:root[data-theme="dark"] .linkbtn.has{color:var(--brand)}
-.shopmeta .linkbtn{padding:5px 9px;font-size:12px}
-@media(max-width:480px){.shopmeta .linkbtn{padding:4px 7px;font-size:11.5px}}
 
 /* פריט בזמן גרירה */
 [data-drag-item].dragging{
@@ -586,7 +600,7 @@ body.dragging-active .rank{cursor:grabbing}
 <div class="toast hidden" id="toast"></div>
 
 <script>
-window.BUILD_STAMP = "2026-08-23 | 17:59";
+window.BUILD_STAMP = "2026-09-02 | 22:01";
 </script>
 <script>
 /* ===== נתוני ברירת מחדל – רשימות מוכנות לעברית =====
@@ -874,6 +888,308 @@ var SEED_CONTACTS = [
 
 </script>
 <script>
+/* ===== ניהול מעבר דירה · חישובים טהורים =====
+   כל מה שכאן הוא פונקציות ללא תופעות לוואי: מקבלות state ומחזירות מספרים
+   או מחרוזות. אין כאן DOM, אין state גלובלי ואין קריאה ל-render.
+   הקובץ נטען לפני app.js וגם לבדו על ידי tests.html, וזו הסיבה שהוא נפרד:
+   app.js כולו עטוף ב-IIFE ולכן אי אפשר לבדוק שום דבר מתוכו.
+
+   שני עקרונות שאסור לשבור כאן:
+   1. לעולם לא לחבר סכום חד-פעמי (₪) לסכום חוזר (₪ לחודש). אלה יחידות שונות,
+      וכל מספר שנגזר מהחיבור הזה חסר משמעות.
+   2. שום ערך לא גורם לרשומה להיעלם. ערך אזור/שלב/סטטוס שאינו ברשימה המוכרת
+      מקבל קבוצה משלו במקום להישמט בשקט. */
+
+var AfulaCalc = (function () {
+  'use strict';
+
+  function num(v) { return Number(v) || 0; }
+  function arr(a) { return Array.isArray(a) ? a : []; }
+  function pct(a, b) { return b ? Math.round((a / b) * 100) : 0; }
+
+  // מפתחות הקבוצות של "מה שלא מוכר". תוויות תצוגה בלבד – לא ערכים שנשמרים בנתונים.
+  var NO_AREA = '__noarea__';
+  var NO_SECTION = '__nosection__';
+  var NO_PHASE = '__nophase__';
+
+  /* ================= קניות ================= */
+
+  // מתנה: נקנה, אבל לא יצא עליו כסף. שונה מ"פריט שלא נרשם לו מחיר".
+  function isGift(it) { return !!(it && it.gift); }
+  // מתנה משמעה שהפריט כבר בבית, ולכן היא נספרת כנקנתה גם אם הדגל bought
+  // לא הוזן (למשל ברשומה שנכתבה דרך שרת ה-MCP).
+  function isBought(it) { return !!(it && (it.bought || it.gift)); }
+  // נקנה, אינו מתנה, ואין סכום ששולם – כלומר המחיר פשוט לא הוזן.
+  function isCostUnknown(it) { return isBought(it) && !isGift(it) && num(it.cost) <= 0; }
+  // כמה כסף באמת יצא על הפריט. מתנה תורמת 0, ופריט שלא נקנה תורם 0.
+  function itemSpend(it) { return (isBought(it) && !isGift(it)) ? num(it.cost) : 0; }
+
+  function knownAreas(state) { return arr(state && state.shopAreas); }
+  // אזור שאינו ברשימה המוכרת לא נעלם – הוא נופל לקבוצת "ללא אזור".
+  function itemAreaKey(state, it) {
+    var a = (it && it.area != null) ? String(it.area) : '';
+    return knownAreas(state).indexOf(a) >= 0 ? a : NO_AREA;
+  }
+
+  function shopStats(state) {
+    var st = { total: 0, bought: 0, gifts: 0, unknownCost: 0, spend: 0,
+               est: 0, estCount: 0, mustLeft: 0, orphans: 0 };
+    arr(state && state.shopping).forEach(function (s) {
+      st.total++;
+      st.est += num(s.est);
+      if (num(s.est) > 0) st.estCount++;
+      if (itemAreaKey(state, s) === NO_AREA) st.orphans++;
+      if (isBought(s)) {
+        st.bought++;
+        if (isGift(s)) st.gifts++;
+        else if (isCostUnknown(s)) st.unknownCost++;
+        st.spend += itemSpend(s);
+      } else if (s.prio === 'must') st.mustLeft++;
+    });
+    return st;
+  }
+
+  function areaStats(state, key) {
+    var st = { total: 0, bought: 0, est: 0, spend: 0, gifts: 0, unknownCost: 0 };
+    arr(state && state.shopping).forEach(function (s) {
+      if (itemAreaKey(state, s) !== key) return;
+      st.total++;
+      st.est += num(s.est);
+      if (isBought(s)) {
+        st.bought++;
+        if (isGift(s)) st.gifts++;
+        else if (isCostUnknown(s)) st.unknownCost++;
+        st.spend += itemSpend(s);
+      }
+    });
+    return st;
+  }
+
+  // הקבוצות שמסך הקניות מציג: כל האזורים המוכרים, ואחריהם "ללא אזור" אם יש.
+  function areaGroups(state) {
+    var out = knownAreas(state).map(function (a) { return { key: a, label: a, unknown: false }; });
+    if (shopStats(state).orphans) out.push({ key: NO_AREA, label: 'ללא אזור', unknown: true });
+    return out;
+  }
+
+  /* ================= תקציב ================= */
+
+  function sectionById(state, id) {
+    var list = arr(state && state.budgetSections);
+    for (var i = 0; i < list.length; i++) if (list[i].id === id) return list[i];
+    return null;
+  }
+  // שורה שהקטגוריה שלה לא מוכרת נחשבת חד-פעמית: עדיף לספור אותה בעלות המעבר
+  // מאשר להעלים אותה או להכניס אותה בטעות לסכום החודשי.
+  function isRecurringRow(state, row) {
+    var s = sectionById(state, row && row.section);
+    return !!(s && s.recurring);
+  }
+  function rowSectionKey(state, row) {
+    return sectionById(state, row && row.section) ? row.section : NO_SECTION;
+  }
+  function sectionStats(state, key) {
+    var st = { planned: 0, actual: 0, count: 0 };
+    arr(state && state.budget).forEach(function (r) {
+      if (rowSectionKey(state, r) !== key) return;
+      st.count++; st.planned += num(r.planned); st.actual += num(r.actual);
+    });
+    return st;
+  }
+  function sectionGroups(state) {
+    var out = arr(state && state.budgetSections).map(function (s) {
+      return { key: s.id, label: s.name, recurring: !!s.recurring, unknown: false };
+    });
+    if (sectionStats(state, NO_SECTION).count) {
+      out.push({ key: NO_SECTION, label: 'ללא קטגוריה', recurring: false, unknown: true });
+    }
+    return out;
+  }
+
+  /* שני סיכומים נפרדים לחלוטין:
+       once    – תקציב המעבר, ב-₪ חד-פעמיים
+       monthly – עלות שוטפת, ב-₪ לחודש
+     אין ביניהם שום פעולת חשבון משותפת, ואין "סך הכול מתוכנן" שמחבר אותם. */
+  function budgetStats(state) {
+    var sh = shopStats(state);
+    var oncePlanned = 0, onceRows = 0, recPlanned = 0, recActual = 0;
+    arr(state && state.budget).forEach(function (r) {
+      if (isRecurringRow(state, r)) { recPlanned += num(r.planned); recActual += num(r.actual); }
+      else { oncePlanned += num(r.planned); onceRows += num(r.actual); }
+    });
+    // הוצאות הקניות נספרות פעם אחת בלבד: הן נכנסות לסכום החד-פעמי כאן,
+    // ואינן משויכות לשום שורת תקציב.
+    var onceActual = onceRows + sh.spend;
+    return {
+      once: {
+        planned: oncePlanned,
+        budgetActual: onceRows,
+        shoppingActual: sh.spend,
+        actual: onceActual,
+        remaining: oncePlanned - onceActual,
+        pct: pct(onceActual, oncePlanned),
+        over: oncePlanned > 0 && onceActual > oncePlanned,
+        gifts: sh.gifts,
+        unknownCost: sh.unknownCost
+      },
+      monthly: {
+        planned: recPlanned,
+        actual: recActual,
+        remaining: recPlanned - recActual,
+        pct: pct(recActual, recPlanned),
+        over: recPlanned > 0 && recActual > recPlanned
+      }
+    };
+  }
+
+  /* ---------- אזהרות איכות נתונים ---------- */
+  // רק דברים שנגזרים מהנתונים עצמם. אין כאן שום הנחה על המעבר.
+  function dataWarnings(state) {
+    var sh = shopStats(state), out = [];
+    if (sh.unknownCost) {
+      out.push(sh.unknownCost === 1
+        ? 'לפריט אחד שסומן כנקנה לא נרשם מחיר, ולכן "שולם בפועל" חלקי.'
+        : 'ל־' + sh.unknownCost + ' פריטים שסומנו כנקנו לא נרשם מחיר, ולכן "שולם בפועל" חלקי.');
+    }
+    if (sh.orphans) {
+      out.push(sh.orphans === 1
+        ? 'פריט אחד משויך לאזור שאינו ברשימת הקטגוריות ומוצג תחת "ללא אזור".'
+        : sh.orphans + ' פריטים משויכים לאזור שאינו ברשימת הקטגוריות ומוצגים תחת "ללא אזור".');
+    }
+    return out;
+  }
+
+  // כיסוי האומדן: "אומדן ל־14 מתוך 39 פריטים"
+  function estCoverageText(state) {
+    var sh = shopStats(state);
+    if (!sh.total) return '';
+    return 'אומדן ל־' + sh.estCount + ' מתוך ' + sh.total + ' פריטים';
+  }
+
+  /* ---------- שורת המצב של כל סיכום, בנפרד ---------- */
+  // nis מוזרק כדי ש-calc.js יישאר בלי תלות בפורמט התצוגה של app.js.
+  function onceBadge(state, nis) {
+    var o = budgetStats(state).once;
+    if (!o.planned) return { tone: 'muted', text: 'כדאי למלא סכומים מתוכננים לתקציב המעבר' };
+    if (o.over) {
+      return { tone: 'warn', text: '⚠️ חריגה של ' + nis(o.actual - o.planned) + ' מתקציב המעבר' };
+    }
+    var base = 'נוצלו ' + nis(o.actual) + ' מתוך ' + nis(o.planned) +
+      ' (' + o.pct + '%), נותרו ' + nis(o.remaining);
+    // מתנה או מחיר חסר משנים את משמעות ה"נותר", ולכן אין כאן סימן ✅ ירוק:
+    // חלק מהיתרה נובע מפריטים שלא עלו כסף או שמחירם פשוט לא הוזן.
+    if (o.unknownCost || o.gifts) {
+      var why = [];
+      if (o.gifts) {
+        why.push(o.gifts === 1 ? 'פריט אחד התקבל במתנה ואינו חיסכון מול התכנון'
+                               : o.gifts + ' פריטים התקבלו במתנה ואינם חיסכון מול התכנון');
+      }
+      if (o.unknownCost) {
+        why.push(o.unknownCost === 1 ? 'לפריט אחד שנקנה לא נרשם מחיר'
+                                     : 'ל־' + o.unknownCost + ' פריטים שנקנו לא נרשם מחיר');
+      }
+      return { tone: 'note', text: 'ℹ️ ' + base + ' · ' + why.join(' · ') };
+    }
+    return { tone: 'ok', text: '✅ ' + base };
+  }
+
+  function monthlyBadge(state, nis) {
+    var m = budgetStats(state).monthly;
+    if (!m.planned) return { tone: 'muted', text: 'כדאי למלא סכומים מתוכננים להוצאות החודשיות' };
+    if (m.over) {
+      return { tone: 'warn', text: '⚠️ חריגה של ' + nis(m.actual - m.planned) + ' לחודש מהתכנון' };
+    }
+    return { tone: 'ok', text: '✅ ' + nis(m.actual) + ' בפועל מתוך ' + nis(m.planned) + ' מתוכנן לחודש' };
+  }
+
+  /* ================= שירותים ================= */
+
+  function openServices(state) {
+    return arr(state && state.services).filter(function (s) { return s.status !== 'done'; });
+  }
+
+  // "א, ב ו־ג ועוד 2" – בלי שום שם שלא הגיע מהנתונים.
+  function joinNames(names, max) {
+    var lim = max || 3;
+    var head = names.slice(0, lim), rest = names.length - head.length;
+    var s = head.length > 1
+      ? head.slice(0, -1).join(', ') + ' ו' + head[head.length - 1]
+      : (head[0] || '');
+    if (rest > 0) s += ' ועוד ' + rest;
+    return s;
+  }
+
+  function daysToMove(state, todayIso) {
+    var d = state && state.settings && state.settings.moveDate;
+    if (!d || !todayIso) return null;
+    var a = new Date(todayIso + 'T00:00:00'), b = new Date(d + 'T00:00:00');
+    if (isNaN(a) || isNaN(b)) return null;
+    return Math.round((b - a) / 86400000);
+  }
+
+  // הניסוח משתנה לפי המרחק מהתאריך, ונגזר ממנו בלבד.
+  function urgencyText(days) {
+    if (days == null) return '';
+    if (days < 0) return days === -1 ? 'המעבר היה אתמול' : 'עברו ' + Math.abs(days) + ' ימים מהמעבר';
+    if (days === 0) return 'היום יום המעבר';
+    if (days === 1) return 'נשאר יום אחד למעבר';
+    if (days < 14) return 'נשארו ' + days + ' ימים למעבר';
+    return 'נשארו כ־' + Math.round(days / 7) + ' שבועות למעבר';
+  }
+
+  // הנחיית זמן אמיתית היא רק מה שכתוב בהערות של השירות עצמו.
+  function firstSentence(txt, max) {
+    var t = String(txt == null ? '' : txt).trim().replace(/\s+/g, ' ');
+    if (!t) return '';
+    var stop = t.search(/[.!?;]/);
+    if (stop > 0) t = t.slice(0, stop);
+    var lim = max || 70;
+    return t.length > lim ? t.slice(0, lim - 1).trim() + '…' : t;
+  }
+  function leadNotes(list, max) {
+    var out = [], lim = max || 2;
+    list.forEach(function (s) {
+      if (out.length >= lim) return;
+      var n = firstSentence(s.notes);
+      if (n) out.push(String(s.name || '').trim() + ': ' + n);
+    });
+    return out;
+  }
+
+  // מחזיר null כשאין שירות פתוח – ואז הכרטיס לא מוצג בכלל.
+  function serviceAlert(state, todayIso) {
+    var open = openServices(state);
+    if (!open.length) return null;
+    var names = open.map(function (s) { return String(s.name || '').trim(); })
+      .filter(function (n) { return n; });
+    var title = open.length === 1
+      ? 'שירות אחד עדיין לא הועבר'
+      : open.length + ' שירותים עדיין לא הועברו';
+    var parts = [];
+    var u = urgencyText(daysToMove(state, todayIso));
+    if (u) parts.push(u);
+    if (names.length) parts.push(names.length === 1 ? names[0] : 'פתוחים: ' + joinNames(names));
+    leadNotes(open).forEach(function (n) { parts.push(n); });
+    return { icon: '🔌', tab: 'services', cta: 'לשירותים', title: title, sub: parts.join(' · ') };
+  }
+
+  return {
+    num: num, pct: pct,
+    NO_AREA: NO_AREA, NO_SECTION: NO_SECTION, NO_PHASE: NO_PHASE,
+    isGift: isGift, isBought: isBought, isCostUnknown: isCostUnknown, itemSpend: itemSpend,
+    itemAreaKey: itemAreaKey, areaGroups: areaGroups, areaStats: areaStats, shopStats: shopStats,
+    sectionById: sectionById, isRecurringRow: isRecurringRow, rowSectionKey: rowSectionKey,
+    sectionStats: sectionStats, sectionGroups: sectionGroups, budgetStats: budgetStats,
+    dataWarnings: dataWarnings, estCoverageText: estCoverageText,
+    onceBadge: onceBadge, monthlyBadge: monthlyBadge,
+    openServices: openServices, joinNames: joinNames, daysToMove: daysToMove,
+    urgencyText: urgencyText, firstSentence: firstSentence, leadNotes: leadNotes,
+    serviceAlert: serviceAlert
+  };
+})();
+
+</script>
+<script>
 /* ===== ניהול מעבר דירה · לוגיקת האפליקציה ===== */
 (function () {
   'use strict';
@@ -902,13 +1218,6 @@ var SEED_CONTACTS = [
     if (isNaN(d)) return '';
     return new Intl.DateTimeFormat('he-IL', { day: 'numeric', month: 'long', year: 'numeric' }).format(d);
   };
-  // תצוגה מספרית קבועה dd/mm/yyyy. נגזרת ישירות ממחרוזת ה-ISO ולא דרך
-  // Intl או Date, כדי שלא תושפע לא משפת המערכת ולא מאזור הזמן.
-  var fmtDateNum = function (iso) {
-    var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso == null ? '' : iso));
-    return m ? m[3] + '/' + m[2] + '/' + m[1] : '';
-  };
-  var DATE_PH = 'dd/mm/yyyy';
   var todayISO = function () {
     var d = new Date();
     return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
@@ -976,7 +1285,7 @@ var SEED_CONTACTS = [
       tasks: SEED_TASKS.map(function (t) { return { id: uid(), phase: t[0], title: t[1], done: false, due: '' }; }),
       boxes: [],
       shopping: SEED_SHOPPING.map(function (s) {
-        return { id: uid(), area: s[0], name: s[1], prio: s[2], est: 0, cost: 0, store: '', link: '', bought: false };
+        return { id: uid(), area: s[0], name: s[1], prio: s[2], est: 0, cost: 0, store: '', link: '', bought: false, gift: false };
       }),
       docs: SEED_DOCS.map(function (d) {
         return { id: uid(), type: d[0], title: d[1], date: '', value: '', link: '', notes: '' };
@@ -1027,6 +1336,9 @@ var SEED_CONTACTS = [
       s.budget.forEach(function (r) {
         if (!r.section || secIds.indexOf(r.section) < 0) r.section = secIds[0];
       });
+
+      // דגל תוספתי: רשומות ישנות מקבלות gift=false ולכן מתנהגות בדיוק כמו קודם
+      s.shopping.forEach(function (it) { if (typeof it.gift !== 'boolean') it.gift = false; });
 
       s.updatedAt = s.updatedAt || 0;
       return s;
@@ -1200,59 +1512,19 @@ var SEED_CONTACTS = [
     var done = state.services.filter(function (s) { return s.status === 'done'; }).length;
     return { done: done, total: state.services.length };
   }
-  function shopStats() {
-    var bought = 0, est = 0, cost = 0, mustLeft = 0;
-    state.shopping.forEach(function (s) {
-      if (s.bought) { bought++; cost += Number(s.cost) || 0; }
-      else if (s.prio === 'must') mustLeft++;
-      est += Number(s.est) || 0;
-    });
-    return { bought: bought, total: state.shopping.length, est: est, cost: cost, mustLeft: mustLeft };
-  }
-  // סיכום לקטגוריית קניות אחת – מקביל ל-sectionStats של התקציב
-  function areaStats(area) {
-    var est = 0, cost = 0, bought = 0, total = 0;
-    state.shopping.forEach(function (s) {
-      if (s.area !== area) return;
-      total++;
-      est += Number(s.est) || 0;
-      cost += Number(s.cost) || 0;
-      if (s.bought) bought++;
-    });
-    return { est: est, cost: cost, bought: bought, total: total };
-  }
-  function sectionById(id) {
-    for (var i = 0; i < state.budgetSections.length; i++) {
-      if (state.budgetSections[i].id === id) return state.budgetSections[i];
-    }
-    return null;
-  }
-  function isRecurring(row) {
-    var s = sectionById(row.section);
-    return !!(s && s.recurring);
-  }
-  // סכום שורה שוטפת: מה ששולם בפועל, ואם עוד לא שולם – ההערכה המתוכננת
-  function rowMonthly(r) { return (Number(r.actual) || 0) || (Number(r.planned) || 0); }
+  // כל חישובי הכסף והקיבוץ יושבים ב-calc.js, כפונקציות טהורות שאפשר לבדוק.
+  // כאן נשארות רק עטיפות דקות שמזריקות את state הנוכחי.
+  var C = AfulaCalc;
+  function shopStats() { return C.shopStats(state); }
+  function areaStats(key) { return C.areaStats(state, key); }
+  function areaGroups() { return C.areaGroups(state); }
+  function itemAreaKey(it) { return C.itemAreaKey(state, it); }
+  function sectionById(id) { return C.sectionById(state, id); }
+  function sectionStats(key) { return C.sectionStats(state, key); }
+  function sectionGroups() { return C.sectionGroups(state); }
+  function rowSectionKey(r) { return C.rowSectionKey(state, r); }
+  function budgetStats() { return C.budgetStats(state); }
 
-  function budgetStats() {
-    var p = 0, a = 0, paid = 0, recurring = 0, oneTime = 0;
-    state.budget.forEach(function (r) {
-      p += Number(r.planned) || 0;
-      a += Number(r.actual) || 0;
-      if (r.paid) paid += Number(r.actual) || 0;
-      if (isRecurring(r)) recurring += rowMonthly(r);
-      else oneTime += Number(r.actual) || 0;
-    });
-    return { planned: p, actual: a, paid: paid, recurring: recurring, oneTime: oneTime };
-  }
-  function sectionStats(secId) {
-    var p = 0, a = 0, n = 0;
-    state.budget.forEach(function (r) {
-      if (r.section !== secId) return;
-      n++; p += Number(r.planned) || 0; a += Number(r.actual) || 0;
-    });
-    return { planned: p, actual: a, count: n };
-  }
   function pct(a, b) { return b ? Math.round((a / b) * 100) : 0; }
 
   /* ---------- חיפוש כללי ---------- */
@@ -1419,6 +1691,57 @@ var SEED_CONTACTS = [
     return '<button type="button" class="stat stat-link" data-tab="' + tab + '">' + inner + '</button>';
   }
 
+  // שני הסיכומים הכספיים, בשתי יחידות שונות ולכן בשני כרטיסים נפרדים.
+  // אין ביניהם חיבור, אין "סך הכול מתוכנן" ואין "כמה פנוי" משותף –
+  // חיבור של ₪ חד-פעמי ל-₪ לחודש מייצר מספר חסר משמעות.
+  function budgetTotals() {
+    var b = budgetStats();
+    return {
+      oncePlanned: b.once.planned, onceActual: b.once.actual, onceRemaining: b.once.remaining,
+      onceBudget: b.once.budgetActual, onceShopping: b.once.shoppingActual,
+      monthlyPlanned: b.monthly.planned, monthlyActual: b.monthly.actual,
+      monthlyRemaining: b.monthly.remaining
+    };
+  }
+  function moneyNote(kind) {
+    var t = kind === 'once' ? C.onceBadge(state, nis) : C.monthlyBadge(state, nis);
+    return '<div class="money-note ' + t.tone + '" data-total="txt:' + kind + '">' + esc(t.text) + '</div>';
+  }
+  function moneyCards(linked) {
+    var b = budgetStats();
+    var tab = linked ? 'budget' : null, shopTab = linked ? 'shopping' : null;
+    var warn = C.dataWarnings(state);
+
+    var h = '<div class="card"><h2>תקציב המעבר <span class="sub">חד-פעמי</span></h2>' +
+      '<div class="grid g4">' +
+      statCard('מתוכנן', nis(b.once.planned), null, null, tab, 'bg:oncePlanned') +
+      statCard('יצא בפועל', nis(b.once.actual), null, null, tab, 'bg:onceActual') +
+      statCard('נותר', nis(b.once.remaining), null, null, tab, 'bg:onceRemaining') +
+      statCard('מזה קניות לדירה', nis(b.once.shoppingActual), null, null, shopTab, 'bg:onceShopping') +
+      '</div>' + moneyNote('once') +
+      '<div class="small muted" style="margin-top:8px">' +
+      'ה"יצא בפועל" מורכב משורות התקציב החד-פעמיות (' +
+      '<b data-total="bg:onceBudget">' + nis(b.once.budgetActual) + '</b>) ועוד מה ששולם במסך הקניות (' +
+      '<b data-total="bg:onceShopping">' + nis(b.once.shoppingActual) + '</b>). ' +
+      'סכום הקניות נספר פעם אחת בלבד ואינו משויך לאף שורת תקציב.' +
+      '</div>';
+    if (warn.length) {
+      h += '<div class="money-note note" style="margin-top:8px">⚠️ ' + warn.map(esc).join(' ') + '</div>';
+    }
+    h += '</div>';
+
+    h += '<div class="card"><h2>עלות חודשית שוטפת <span class="sub">₪ לחודש</span></h2>' +
+      '<div class="grid g2">' +
+      statCard('מתוכנן לחודש', nis(b.monthly.planned), null, null, tab, 'bg:monthlyPlanned') +
+      statCard('בפועל לחודש', nis(b.monthly.actual), null, null, tab, 'bg:monthlyActual') +
+      '</div>' + moneyNote('monthly') +
+      '<div class="small muted" style="margin-top:8px">' +
+      'סכום חודשי מהקטגוריות המסומנות כחוזרות. הוא נמדד מול התכנון החודשי בלבד ' +
+      'ואינו מתחבר לעלות המעבר החד-פעמית.' +
+      '</div></div>';
+    return h;
+  }
+
   // הודעה שניתן ללחוץ עליה כדי לקפוץ למסך הרלוונטי, כבר עם הסינון המתאים.
   // filters ממופה לשמות ה-data שמטופלים במאזין הלחיצה (prio, taskphase, boxstatus…)
   function alertCard(o) {
@@ -1437,44 +1760,47 @@ var SEED_CONTACTS = [
       return '<option value="' + esc(v) + '"' + (String(sel) === String(v) ? ' selected' : '') + '>' + esc(l) + '</option>';
     }).join('');
   }
-  function bind(coll, id, field, extra) {
-    return 'data-act="edit" data-coll="' + coll + '" data-id="' + id + '" data-field="' + field + '"' + (extra || '');
+  // גרסה של opts שלא מאבדת ערך לא מוכר. בלעדיה, בחירה בערך שאינו ברשימה
+  // הייתה מוצגת כאילו נבחר הפריט הראשון, ועריכה כלשהי בשורה הייתה דורסת אותו.
+  function optsWith(list, sel, valKey, labKey) {
+    var v = (sel == null ? '' : String(sel));
+    var known = list.some(function (o) { return String(valKey ? o[valKey] : o) === v; });
+    var head = (v && !known)
+      ? '<option value="' + esc(v) + '" selected>' + esc(v) + ' (לא מוכר)</option>'
+      : '';
+    return head + opts(list, sel, valKey, labKey);
+  }
+  // אפשרויות סינון לשדה עם ערכים מוגדרים מראש, בתוספת כל ערך חורג שקיים בנתונים
+  function enumFilterOpts(list, records, field) {
+    var out = list.map(function (o) { return [o.id, o.label]; });
+    var have = {};
+    out.forEach(function (o) { have[o[0]] = 1; });
+    uniq((records || []).map(function (r) { return String(r[field] == null ? '' : r[field]); }))
+      .forEach(function (v) { if (v && !have[v]) out.push([v, v + ' (לא מוכר)']); });
+    return out;
   }
 
-  // שדה תאריך עם תצוגה אחידה בכל מכשיר.
-  // <input type="date"> מציג את הערך לפי שפת המערכת של הדפדפן ולא לפי
-  // ה-lang של הדף, ולכן אותו תאריך נראה 21/08/2026 במחשב בעברית
-  // ו-08/21/2026 בטלפון שמוגדר באנגלית. אין דרך לכפות פורמט על השדה
-  // המקורי, ולכן הטקסט שלו מוסתר (color:transparent) ומעליו מוצג הכיתוב
-  // שלנו. השדה עצמו נשאר במקומו – הלוח הנפתח והמקלדת עובדים כרגיל,
-  // והערך שנשמר הוא אותו ISO כמו קודם.
-  function dateField(value, attrs) {
-    var v = String(value == null ? '' : value);
-    var txt = fmtDateNum(v);
-    return '<span class="datef">' +
-      '<input type="date" value="' + esc(v) + '"' + (attrs ? ' ' + attrs : '') + '>' +
-      '<span class="dtxt' + (txt ? '' : ' ph') + '" dir="ltr" aria-hidden="true">' +
-      (txt || DATE_PH) + '</span></span>';
-  }
-  // הכיתוב מתעדכן מיד אחרי בחירה. ברוב המסכים ממילא מגיע render() אחרי
-  // שינוי תאריך, אבל לא בכולם (תאריך המעבר בהגדרות למשל), ולכן הסנכרון
-  // יושב על האירוע עצמו ולא על הציור מחדש.
-  function syncDateText(inp) {
-    var span = inp.parentNode && inp.parentNode.querySelector('.dtxt');
-    if (!span) return;
-    var txt = fmtDateNum(inp.value);
-    span.textContent = txt || DATE_PH;
-    span.classList.toggle('ph', !txt);
+  function bind(coll, id, field, extra) {
+    return 'data-act="edit" data-coll="' + coll + '" data-id="' + id + '" data-field="' + field + '"' + (extra || '');
   }
 
   // כפתור קישור. שדה קישור מלא תופס שורה שלמה ומציג טקסט שאף אחד לא קורא,
   // ולכן הקישור מתחבא מאחורי כפתור אחד: לחיצה קצרה פותחת, לחיצה ארוכה עורכת.
   function linkBtn(collName, it) {
     var has = !!String(it.link || '').trim();
-    return '<button type="button" class="btn sm linkbtn' + (has ? ' has' : '') + '"' +
+    return '<button type="button" class="icontoggle' + (has ? ' on' : '') + '"' +
       ' data-act="link" data-coll="' + collName + '" data-id="' + it.id + '"' +
-      ' title="' + (has ? 'לחיצה קצרה פותחת · לחיצה ארוכה לעריכת הקישור' : 'לחיצה להוספת קישור') + '">' +
-      (has ? '🔗 פתח קישור' : '🔗 הוספת קישור') + '</button>';
+      ' title="' + (has ? 'לחיצה קצרה פותחת · לחיצה ארוכה לעריכת הקישור' : 'לחיצה להוספת קישור') + '"' +
+      ' aria-label="' + (has ? 'פתיחת הקישור' : 'הוספת קישור') + '">🔗</button>';
+  }
+  // אותו כפתור-אייקון לכל דגל בוליאני. אין כאן תיבת סימון מוסתרת: כפתור
+  // אמיתי לא יכול "להתגלות" כתיבה חשופה אם גיליון הסגנונות מגיע מאוחר.
+  function flagBtn(collName, it, field, icon, onTitle, offTitle) {
+    var on = !!it[field];
+    return '<button type="button" class="icontoggle' + (on ? ' on' : '') + '"' +
+      ' data-act="flag" data-coll="' + collName + '" data-id="' + it.id + '" data-field="' + field + '"' +
+      ' aria-pressed="' + (on ? 'true' : 'false') + '"' +
+      ' title="' + esc(on ? onTitle : offTitle) + '">' + icon + '</button>';
   }
 
   function editLink(collName, id) {
@@ -1549,7 +1875,7 @@ var SEED_CONTACTS = [
   function viewDash() {
     if (query()) return viewGlobalSearch();
     var s = state.settings;
-    var t = taskStats(), b = boxStats(), sv = serviceStats(), bg = budgetStats(), sh = shopStats();
+    var t = taskStats(), b = boxStats(), sv = serviceStats(), sh = shopStats();
     var h = '';
 
     var cd = '';
@@ -1595,13 +1921,10 @@ var SEED_CONTACTS = [
       });
     }
 
-    if (sv.total - sv.done && s.moveDate && daysBetween(todayISO(), s.moveDate) <= 14) {
-      h += alertCard({
-        icon: '🔌', tab: 'services', cta: 'לשירותים',
-        title: (sv.total - sv.done) + ' שירותים עדיין לא הועברו',
-        sub: 'נשארו פחות משבועיים למעבר – חשמל, מים, ארנונה ואינטרנט דורשים תיאום מראש.'
-      });
-    }
+    // הכרטיס כולו נבנה מהרשומות עצמן: השמות, הדחיפות וההנחיות מגיעים
+    // מ-services ומ-moveDate. אין כאן שום שם שירות או זמן הכנה קבוע בקוד.
+    var svcAlert = C.serviceAlert(state, todayISO());
+    if (svcAlert) h += alertCard(svcAlert);
 
     // המשימות הקרובות
     var next = state.tasks.filter(function (x) { return !x.done; });
@@ -1622,13 +1945,10 @@ var SEED_CONTACTS = [
     }).join('');
     h += '</div>';
 
-    h += '<div class="card"><h2>כסף במבט מהיר</h2><div class="grid g2">' +
-      statCard('תקציב מתוכנן', nis(bg.planned), null, null, 'budget') +
-      statCard('הוצאות המעבר', nis(bg.oneTime), null, null, 'budget') +
-      statCard('קניות לדירה', nis(sh.cost), null, null, 'shopping') +
-      statCard('הוצאות שוטפות', nis(bg.recurring), null, null, 'budget') +
-      statCard('סה"כ יצא עד עכשיו', nis(bg.oneTime + sh.cost), null, null, 'budget') +
-      '</div><div class="small muted" style="margin-top:8px">"קניות לדירה" מגיע מלשונית הקניות ולא נספר פעמיים. "הוצאות שוטפות" הוא הסכום החודשי מהקטגוריות המסומנות כחוזרות בתקציב, והוא אינו חלק מעלות המעבר החד-פעמית.</div></div>';
+    h += '<div class="card money-head"><h2>כסף במבט מהיר</h2>' +
+      '<div class="small muted">שני מספרים שאי אפשר לחבר: עלות המעבר היא ₪ חד-פעמיים, ' +
+      'והעלות השוטפת היא ₪ לחודש. לכן הם מוצגים בנפרד.</div></div>';
+    h += moneyCards(true);
 
     return h;
   }
@@ -1665,7 +1985,9 @@ var SEED_CONTACTS = [
     // כל המיון והסינון יושבים בסרגל אחד, כמו במסך הקניות
     h += toolbar('tasks', [
       ['phase', 'שלב', filt('tasks', 'phase'),
-        [['', 'כל השלבים']].concat(PHASES.map(function (p) { return [p.id, p.label]; }))],
+        [['', 'כל השלבים']].concat(PHASES.map(function (p) { return [p.id, p.label]; }))
+          .concat(state.tasks.some(function (t) { return PHASES.every(function (x) { return x.id !== t.phase; }); })
+            ? [[C.NO_PHASE, 'ללא שלב']] : [])],
       ['state', 'מצב', filt('tasks', 'state'),
         [['', 'הכול'], ['open', 'רק שלא בוצעו'], ['done', 'רק שבוצעו']]],
       ['due', 'תאריך יעד', filt('tasks', 'due'),
@@ -1674,11 +1996,19 @@ var SEED_CONTACTS = [
     ]);
 
     var phFilt = filt('tasks', 'phase'), stFilt = filt('tasks', 'state');
-    var phases = PHASES.filter(function (p) { return !phFilt || p.id === phFilt; });
+    // משימה עם שלב שאינו ברשימה לא נעלמת: היא מקבלת קבוצה אחרונה משלה
+    var known = PHASES.map(function (p) { return p.id; });
+    var groups = PHASES.map(function (p) { return { id: p.id, label: p.label, unknown: false }; });
+    if (state.tasks.some(function (t) { return known.indexOf(t.phase) < 0; })) {
+      groups.push({ id: C.NO_PHASE, label: 'ללא שלב', unknown: true });
+    }
+    var phases = groups.filter(function (p) { return !phFilt || p.id === phFilt; });
     var shown = 0, total = state.tasks.length;
 
     phases.forEach(function (p) {
-      var all = state.tasks.filter(function (t) { return t.phase === p.id; });
+      var all = state.tasks.filter(function (t) {
+        return p.unknown ? known.indexOf(t.phase) < 0 : t.phase === p.id;
+      });
       var list = all.filter(function (t) {
         if (stFilt === 'open' && t.done) return false;
         if (stFilt === 'done' && !t.done) return false;
@@ -1710,9 +2040,9 @@ var SEED_CONTACTS = [
           // העברת המשימה לשלב אחר – אייקון שפותח רשימה נפתחת עם כל השלבים
           '<span class="phase-pick" title="העברה לשלב אחר"><i aria-hidden="true">⇄</i>' +
           '<select class="phase-sel" aria-label="העברת המשימה לשלב אחר" ' +
-          bind('tasks', t.id, 'phase') + '>' + opts(PHASES, t.phase, 'id', 'label') + '</select></span>' +
+          bind('tasks', t.id, 'phase') + '>' + optsWith(PHASES, t.phase, 'id', 'label') + '</select></span>' +
           '<span class="small muted">יעד:</span>' +
-          dateField(t.due, bind('tasks', t.id, 'due')) +
+          '<input type="date" value="' + esc(t.due || '') + '" ' + bind('tasks', t.id, 'due') + '>' +
           (late ? '<span class="late">באיחור</span>' : '') + '</div></div>' +
           '<button class="x" data-act="del" data-coll="tasks" data-id="' + t.id + '" title="מחיקה">✕</button></div>';
       });
@@ -1734,9 +2064,10 @@ var SEED_CONTACTS = [
 
     h += toolbar('boxes', [
       ['status', 'סטטוס', filt('boxes', 'status'),
-        [['', 'כל הסטטוסים']].concat(BOX_STATUS.map(function (s) { return [s.id, s.label]; }))],
+        [['', 'כל הסטטוסים']].concat(enumFilterOpts(BOX_STATUS, state.boxes, 'status'))],
       ['to', 'חדר יעד', filt('boxes', 'to'),
-        [['', 'כל החדרים']].concat(ROOMS.map(function (r) { return [r, r]; }))],
+        [['', 'כל החדרים']].concat(uniq(ROOMS.concat(state.boxes.map(function (b) { return b.to; })))
+          .map(function (r) { return [r, r]; }))],
       ['fragile', 'שביר', filt('boxes', 'fragile'), [['', 'הכל'], ['1', 'שבירים בלבד']]]
     ]);
 
@@ -1761,16 +2092,16 @@ var SEED_CONTACTS = [
         '<div class="num">' + x.num + '</div><div class="body">' +
         '<input value="' + esc(x.contents) + '" placeholder="תוכן הארגז" ' + bind('boxes', x.id, 'contents') + '>' +
         '<div class="line">' +
-        '<select ' + bind('boxes', x.id, 'from') + ' style="flex:1">' + opts(ROOMS, x.from) + '</select>' +
+        '<select ' + bind('boxes', x.id, 'from') + ' style="flex:1">' + optsWith(ROOMS, x.from) + '</select>' +
         '<span class="muted">←</span>' +
-        '<select ' + bind('boxes', x.id, 'to') + ' style="flex:1">' + opts(ROOMS, x.to) + '</select>' +
+        '<select ' + bind('boxes', x.id, 'to') + ' style="flex:1">' + optsWith(ROOMS, x.to) + '</select>' +
         '</div><div class="line">' +
-        '<select ' + bind('boxes', x.id, 'status') + ' style="flex:1">' + opts(BOX_STATUS, x.status, 'id', 'label') + '</select>' +
+        '<select ' + bind('boxes', x.id, 'status') + ' style="flex:1">' + optsWith(BOX_STATUS, x.status, 'id', 'label') + '</select>' +
         '<label class="row small" style="gap:5px;flex:none"><input type="checkbox"' + (x.fragile ? ' checked' : '') +
         ' data-act="toggle" data-coll="boxes" data-id="' + x.id + '" data-field="fragile"> שביר</label>' +
         '<button class="x" data-act="del" data-coll="boxes" data-id="' + x.id + '">✕</button></div>' +
         '<div class="tagline"><span class="tag' + (x.status === 'opened' ? ' ok' : x.status === 'todo' ? '' : ' warn') + '">' +
-        esc(st ? st.label : '') + '</span>' + (x.fragile ? '<span class="tag fragile">⚠️ שביר</span>' : '') + '</div>' +
+        esc(st ? st.label : (x.status || 'ללא סטטוס')) + '</span>' + (x.fragile ? '<span class="tag fragile">⚠️ שביר</span>' : '') + '</div>' +
         '</div></div>';
     }).join('') + '</div>';
     h += '</div>';
@@ -1779,12 +2110,23 @@ var SEED_CONTACTS = [
 
   function viewShopping() {
     var sh = shopStats();
+    var warn = C.dataWarnings(state);
     var h = '<div class="card"><h2>קניות לדירה <span class="sub">' + sh.bought + '/' + sh.total + ' נקנו</span></h2>' +
       '<div class="bar"><i style="width:' + pct(sh.bought, sh.total) + '%"></i></div>' +
       '<div class="grid g2" style="margin-top:10px">' +
-      '<div class="stat"><div class="k">סה"כ משוער</div><div class="v" data-total="sh:est">' + nis(sh.est) + '</div></div>' +
-      '<div class="stat"><div class="k">שולם בפועל</div><div class="v" data-total="sh:cost">' + nis(sh.cost) + '</div></div>' +
-      '</div></div>';
+      '<div class="stat"><div class="k">סה"כ משוער</div><div class="v" data-total="sh:est">' + nis(sh.est) + '</div>' +
+      // האומדן נראה סמכותי גם כשהוא מכסה מעט פריטים – לכן הכיסוי כתוב לצידו
+      '<div class="small muted">' + esc(C.estCoverageText(state)) + '</div></div>' +
+      '<div class="stat"><div class="k">שולם בפועל</div><div class="v" data-total="sh:spend">' + nis(sh.spend) + '</div>' +
+      '<div class="small muted">' +
+      (sh.gifts ? (sh.gifts === 1 ? 'מתנה אחת (0 ₪)' : sh.gifts + ' מתנות (0 ₪)') : '') +
+      (sh.gifts && sh.unknownCost ? ' · ' : '') +
+      (sh.unknownCost ? (sh.unknownCost === 1 ? 'פריט אחד ללא מחיר רשום'
+                                              : sh.unknownCost + ' פריטים ללא מחיר רשום') : '') +
+      '</div></div>' +
+      '</div>';
+    if (warn.length) h += '<div class="money-note note" style="margin-top:8px">⚠️ ' + warn.map(esc).join(' ') + '</div>';
+    h += '</div>';
 
     h += '<div class="card"><h2>פריט חדש</h2><div class="row">' +
       '<input id="nsName" placeholder="מה צריך לקנות?" style="flex:2 1 180px">' +
@@ -1792,63 +2134,85 @@ var SEED_CONTACTS = [
       '<select id="nsPrio" style="flex:1 1 120px">' + opts(SHOP_PRIO, 'soon', 'id', 'label') + '</select>' +
       '<button class="btn primary" data-act="add-shop">הוסף</button></div></div>';
 
+    // הסינונים נבנים מהקבוצות בפועל ומהערכים שקיימים בנתונים, כדי שגם ערך
+    // שאינו ברשימה המוכרת יהיה ניתן לסינון ולא ייעלם מהמסך
+    var groups = areaGroups();
     h += toolbar('shopping', [
       ['prio', 'עדיפות', filt('shopping', 'prio'),
-        [['', 'כל העדיפויות']].concat(SHOP_PRIO.map(function (x) { return [x.id, x.label]; }))],
+        [['', 'כל העדיפויות']].concat(enumFilterOpts(SHOP_PRIO, state.shopping, 'prio'))],
       ['area', 'קטגוריה', filt('shopping', 'area'),
-        [['', 'כל הקטגוריות']].concat(state.shopAreas.map(function (a) { return [a, a]; }))],
+        [['', 'כל הקטגוריות']].concat(groups.map(function (g) { return [g.key, g.label]; }))],
       ['bought', 'מצב', filt('shopping', 'bought'),
-        [['', 'הכל'], ['0', 'שטרם נקנו'], ['1', 'שכבר נקנו']]],
+        [['', 'הכל'], ['0', 'שטרם נקנו'], ['1', 'שכבר נקנו'], ['gift', 'מתנות'], ['nocost', 'נקנו ללא מחיר']]],
       ['store', 'חנות', filt('shopping', 'store'),
         [['', 'כל החנויות']].concat(uniq(state.shopping.map(function (s) { return (s.store || '').trim(); }))
           .map(function (v) { return [v, v]; }))]
     ]);
 
     var shopShown = 0;
-    state.shopAreas.forEach(function (area) {
-      var all = state.shopping.filter(function (s) { return s.area === area; });
+    var sManual = isManual('shopping');
+    groups.forEach(function (g) {
+      var all = state.shopping.filter(function (s) { return itemAreaKey(s) === g.key; });
       if (!all.length) return;
-      if (filt('shopping', 'area') && area !== filt('shopping', 'area')) return;
+      if (filt('shopping', 'area') && g.key !== filt('shopping', 'area')) return;
       var list = all.filter(function (s) {
         if (filt('shopping', 'prio') && s.prio !== filt('shopping', 'prio')) return false;
         var bf = filt('shopping', 'bought');
         if (bf === '1' && !s.bought) return false;
         if (bf === '0' && s.bought) return false;
+        if (bf === 'gift' && !C.isGift(s)) return false;
+        if (bf === 'nocost' && !C.isCostUnknown(s)) return false;
         if (filt('shopping', 'store') && (s.store || '').trim() !== filt('shopping', 'store')) return false;
         return hit(s.name, s.store, s.area);
       });
       list = sortList('shopping', list);
-      var sManual = isManual('shopping');
       shopShown += list.length;
       if (!list.length && query()) return;
-      var ast = areaStats(area);
+      var ast = areaStats(g.key);
       var got = ast.bought;
-      h += '<div class="card phase"><div class="phase-head"><h3>' + esc(area) + '</h3>' +
+      h += '<div class="card phase"><div class="phase-head"><h3>' + esc(g.label) +
+        (g.unknown ? '<span class="tag warn">אזור לא מוכר</span>' : '') + '</h3>' +
         '<span class="cnt">' + got + '/' + all.length + '</span><span class="spacer"></span></div>' +
         '<div class="bar" style="margin-bottom:8px"><i style="width:' + pct(got, all.length) + '%"></i></div>';
+      if (g.unknown) {
+        h += '<div class="small muted" style="margin-bottom:8px">' +
+          'הפריטים האלה שייכים לאזור שאינו ברשימת הקטגוריות. הם נספרים בכל הסיכומים, ' +
+          'ואפשר להעביר אותם לקטגוריה קיימת מהתפריט שבשורה.</div>';
+      }
       if (!list.length) h += '<div class="empty">אין פריטים מתאימים לסינון</div>';
       h += '<div data-drag-group data-drag-coll="shopping">';
       list.forEach(function (s, i) {
-        h += '<div class="task' + (s.bought ? ' done' : '') + '" data-drag-item data-id="' + s.id + '">' +
+        // מתנה מסומנת בתיבת הסימון בלבד. אין תגית נוספת, ואין תגית ל"מחיר לא נרשם" –
+        // שדה מחיר ריק בשורה שסומנה כנקנתה כבר אומר את זה, והאזהרה המסכמת בראש המסך
+        // היא המקום שבו סופרים את זה. כל שדה יושב בתא קבוע ברשת, כדי שכל השורות יתיישרו.
+        var gift = C.isGift(s), got = C.isBought(s);
+        h += '<div class="task' + (got ? ' done' : '') + '" data-drag-item data-id="' + s.id + '">' +
           rank(i, sManual) +
-          '<input type="checkbox"' + (s.bought ? ' checked' : '') + ' data-act="toggle" data-coll="shopping" data-id="' + s.id + '" data-field="bought">' +
+          '<input type="checkbox"' + (got ? ' checked' : '') + ' data-act="toggle" data-coll="shopping" data-id="' + s.id + '" data-field="bought">' +
           '<div class="t"><input class="title" value="' + esc(s.name) + '" ' + bind('shopping', s.id, 'name') + '>' +
-          '<div class="shopmeta">' +
+          '<div class="shopmeta buy">' +
           '<select ' + bind('shopping', s.id, 'prio') + ' class="mini' + (s.prio === 'must' && !s.bought ? ' urgent' : '') + '">' +
-          opts(SHOP_PRIO, s.prio, 'id', 'label') + '</select>' +
+          optsWith(SHOP_PRIO, s.prio, 'id', 'label') + '</select>' +
           '<input type="number" inputmode="numeric" min="0" class="mini" placeholder="משוער ₪" value="' + (s.est || '') + '" ' + bind('shopping', s.id, 'est') + '>' +
-          '<input type="number" inputmode="numeric" min="0" class="mini" placeholder="שולם ₪" value="' + (s.cost || '') + '" ' + bind('shopping', s.id, 'cost') + '>' +
+          // בפריט שהתקבל במתנה אין מה למלא: השדה נשאר במקומו כדי לשמור על היישור, אבל נעול
+          '<input type="number" inputmode="numeric" min="0" class="mini" placeholder="' +
+          (gift ? '—' : 'שולם ₪') + '" value="' + (gift ? '' : (s.cost || '')) + '"' +
+          (gift ? ' disabled' : '') + ' ' + bind('shopping', s.id, 'cost') + '>' +
           '<input class="mini" placeholder="חנות" value="' + esc(s.store || '') + '" ' + bind('shopping', s.id, 'store') + '>' +
           '<select class="mini" title="העברה לקטגוריה אחרת" ' + bind('shopping', s.id, 'area') + '>' +
-          opts(state.shopAreas, s.area) + '</select>' +
-          linkBtn('shopping', s) +
+          optsWith(state.shopAreas, s.area) + '</select>' +
           '</div></div>' +
+          // 🎁 ו-🔗 יושבים בשורת הכותרת ליד ה-✕, בגובה אחיד: אלה מצבים של הפריט
+          // כולו ולא שדות בשורת הפרטים, ובמילים אין צורך כשהאייקון דולק או כבוי.
+          flagBtn('shopping', s, 'gift', '🎁',
+            'התקבל במתנה – נספר כנקנה ותורם 0 להוצאה', 'סימון כמתנה') +
+          linkBtn('shopping', s) +
           '<button class="x" data-act="del" data-coll="shopping" data-id="' + s.id + '" title="מחיקה">✕</button></div>';
       });
       // אותה שורת סיכום כמו בתקציב: כמה תוכנן לקטגוריה וכמה יצא בפועל
       h += '</div><div class="sectotal"><span>סה"כ</span><span class="spacer"></span>' +
-        '<span class="small muted">משוער</span><b data-total="ssec:est:' + esc(area) + '">' + nis(ast.est) + '</b>' +
-        '<span class="small muted">בפועל</span><b data-total="ssec:cost:' + esc(area) + '">' + nis(ast.cost) + '</b>' +
+        '<span class="small muted">משוער</span><b data-total="ssec:est:' + esc(g.key) + '">' + nis(ast.est) + '</b>' +
+        '<span class="small muted">בפועל</span><b data-total="ssec:spend:' + esc(g.key) + '">' + nis(ast.spend) + '</b>' +
         '</div></div>';
     });
     if (!shopShown) h += '<div class="card"><div class="empty">לא נמצאו פריטים מתאימים</div></div>';
@@ -1857,11 +2221,13 @@ var SEED_CONTACTS = [
     h += '<div class="card"><h2>קטגוריות</h2><div class="row">' +
       '<input id="nsaName" placeholder="שם קטגוריה חדשה, למשל: מרפסת" style="flex:2 1 180px">' +
       '<button class="btn primary" data-act="add-shop-area">הוספה</button></div>' +
-      '<div class="seclist">' + state.shopAreas.map(function (a) {
-        var n = state.shopping.filter(function (s) { return s.area === a; }).length;
-        return '<div class="secrow"><b>' + esc(a) + '</b><span class="spacer"></span>' +
+      '<div class="seclist">' + groups.map(function (g) {
+        var n = state.shopping.filter(function (s) { return itemAreaKey(s) === g.key; }).length;
+        return '<div class="secrow"><b>' + esc(g.label) + '</b><span class="spacer"></span>' +
           '<span class="tag">' + n + ' פריטים</span>' +
-          '<button class="x" data-act="del-shop-area" data-name="' + esc(a) + '" title="מחיקה">✕</button></div>';
+          (g.unknown ? '<span class="tag warn">לא מוכר</span>'
+                     : '<button class="x" data-act="del-shop-area" data-name="' + esc(g.key) + '" title="מחיקה">✕</button>') +
+          '</div>';
       }).join('') + '</div></div>';
 
     return searchNote(shopShown, sh.total, 'פריטים') + h;
@@ -1875,7 +2241,7 @@ var SEED_CONTACTS = [
 
     h += toolbar('docs', [
       ['type', 'סוג', filt('docs', 'type'),
-        [['', 'כל הסוגים']].concat(DOC_TYPES.map(function (x) { return [x.id, x.label]; }))],
+        [['', 'כל הסוגים']].concat(enumFilterOpts(DOC_TYPES, state.docs, 'type'))],
       ['link', 'קישור', filt('docs', 'link'), [['', 'הכל'], ['1', 'עם קישור'], ['0', 'ללא קישור']]]
     ]);
 
@@ -1892,17 +2258,18 @@ var SEED_CONTACTS = [
     docList.forEach(function (d, i) {
       var tp = DOC_TYPES.filter(function (x) { return x.id === d.type; })[0];
       h += '<div class="card" data-drag-item data-id="' + d.id + '">' + rank(i, dcManual) + '<h2>' + esc(d.title || 'ללא שם') +
-        '<span class="tag">' + esc(tp ? tp.label : '') + '</span></h2>' +
+        '<span class="spacer"></span>' +
+        '<span class="tag">' + esc(tp ? tp.label : (d.type || 'ללא סוג')) + '</span>' +
+        linkBtn('docs', d) + '</h2>' +
         '<div class="row">' +
         '<label class="f">כותרת<input value="' + esc(d.title || '') + '" ' + bind('docs', d.id, 'title') + '></label>' +
-        '<label class="f">סוג<select ' + bind('docs', d.id, 'type') + '>' + opts(DOC_TYPES, d.type, 'id', 'label') + '</select></label>' +
-        '<label class="f">תאריך' + dateField(d.date, bind('docs', d.id, 'date')) + '</label>' +
+        '<label class="f">סוג<select ' + bind('docs', d.id, 'type') + '>' + optsWith(DOC_TYPES, d.type, 'id', 'label') + '</select></label>' +
+        '<label class="f">תאריך<input type="date" value="' + esc(d.date || '') + '" ' + bind('docs', d.id, 'date') + '></label>' +
         '<label class="f">' + (d.type === 'meter' ? 'קריאת המונה' : 'מספר / סכום') +
         '<input value="' + esc(d.value || '') + '" ' + bind('docs', d.id, 'value') + '></label>' +
         '</div>' +
         '<label class="f" style="margin-top:8px">הערות<textarea ' + bind('docs', d.id, 'notes') + '>' + esc(d.notes || '') + '</textarea></label>' +
         '<div class="row" style="margin-top:8px">' +
-        linkBtn('docs', d) +
         '<span class="spacer"></span>' +
         '<button class="x" data-act="del" data-coll="docs" data-id="' + d.id + '">✕ מחיקה</button></div></div>';
     });
@@ -1913,16 +2280,7 @@ var SEED_CONTACTS = [
   }
 
   function viewBudget() {
-    var bg = budgetStats();
-    var h = '<div class="card"><h2>סיכום</h2><div class="grid g4">' +
-      statCard('מתוכנן', nis(bg.planned), null, null, null, 'bg:planned') +
-      statCard('בפועל', nis(bg.actual), null, null, null, 'bg:actual') +
-      statCard('הוצאות המעבר', nis(bg.oneTime), null, null, null, 'bg:oneTime') +
-      statCard('שוטף לחודש', nis(bg.recurring), null, null, null, 'bg:recurring') +
-      '</div><div class="small muted" style="margin-top:8px">' +
-      (bg.planned && bg.actual > bg.planned ? '⚠️ חריגה של ' + nis(bg.actual - bg.planned) + ' מהתכנון' :
-        bg.planned ? '✅ בתוך התקציב (' + nis(bg.planned - bg.actual) + ' פנוי)' : 'כדאי למלא סכומים מתוכננים') +
-      '</div></div>';
+    var h = moneyCards();
 
     h += toolbar('budget', [
       ['paid', 'תשלום', filt('budget', 'paid'), [['', 'הכל'], ['0', 'שטרם שולמו'], ['1', 'ששולמו']]],
@@ -1939,15 +2297,20 @@ var SEED_CONTACTS = [
     var secOpts = state.budgetSections.map(function (s) { return { id: s.id, label: s.name }; });
     var buManual = isManual('budget');
 
-    state.budgetSections.forEach(function (sec) {
-      var rows = sortList('budget', bRows.filter(function (r) { return r.section === sec.id; }));
+    sectionGroups().forEach(function (sec) {
+      var rows = sortList('budget', bRows.filter(function (r) { return rowSectionKey(r) === sec.key; }));
       if (!rows.length && (query() || filt('budget', 'paid') || filt('budget', 'over'))) return;
-      var st = sectionStats(sec.id);
+      if (!rows.length && sec.unknown) return;
+      var st = sectionStats(sec.key);
+      // היחידה כתובה בכותרת: בקטגוריה חוזרת המספרים הם ₪ לחודש, ולא סכום חד-פעמי
+      var unit = sec.recurring ? ' לחודש' : '';
 
-      h += '<div class="card"><h2>' + esc(sec.name) +
+      h += '<div class="card"><h2>' + esc(sec.label) +
         (sec.recurring ? '<span class="tag warn">חוזר כל חודש</span>' : '') +
-        '<span class="sub">' + nis(st.actual) + ' מתוך ' + nis(st.planned) + ' מתוכנן</span></h2>' +
-        '';
+        (sec.unknown ? '<span class="tag warn">קטגוריה לא מוכרת</span>' : '') +
+        '<span class="sub">' + nis(st.actual) + ' מתוך ' + nis(st.planned) + ' מתוכנן' + unit + '</span></h2>' +
+        (sec.unknown ? '<div class="small muted">השורות האלה משויכות לקטגוריה שכבר לא קיימת. '
+          + 'הן נספרות בתקציב החד-פעמי, ואפשר לשייך אותן מחדש מהתפריט שבשורה.</div>' : '');
 
       if (!rows.length) h += '<div class="empty">אין סעיפים בקטגוריה הזו</div>';
       h += '<div data-drag-group data-drag-coll="budget">';
@@ -1960,13 +2323,13 @@ var SEED_CONTACTS = [
           ' title="שולם" data-act="toggle" data-coll="budget" data-id="' + r.id + '" data-field="paid">' +
           '<div class="t"><input class="title" value="' + esc(r.cat) + '" placeholder="שם הסעיף" ' +
           bind('budget', r.id, 'cat') + '>' +
-          '<div class="shopmeta">' +
+          '<div class="shopmeta bud">' +
           '<input type="number" inputmode="numeric" min="0" class="mini" placeholder="מתוכנן ₪" value="' +
           (r.planned || '') + '" ' + bind('budget', r.id, 'planned') + '>' +
           '<input type="number" inputmode="numeric" min="0" class="mini" placeholder="בפועל ₪" value="' +
           (r.actual || '') + '" ' + bind('budget', r.id, 'actual') + '>' +
           '<select class="mini" title="קטגוריה" ' + bind('budget', r.id, 'section') + '>' +
-          opts(secOpts, r.section, 'id', 'label') + '</select>' +
+          optsWith(secOpts, r.section, 'id', 'label') + '</select>' +
           '<input class="mini" placeholder="ספק / פרטים" value="' + esc(r.note || '') + '" ' +
           bind('budget', r.id, 'note') + '>' +
           '</div></div>' +
@@ -1974,13 +2337,13 @@ var SEED_CONTACTS = [
       });
 
       h += '</div><div class="sectotal"><span>סה"כ</span><span class="spacer"></span>' +
-        '<span class="small muted">מתוכנן</span><b data-total="bsec:planned:' + esc(sec.id) + '">' + nis(st.planned) + '</b>' +
-        '<span class="small muted">בפועל</span><b data-total="bsec:actual:' + esc(sec.id) + '">' + nis(st.actual) + '</b></div>' +
-        '<div class="row" style="margin-top:10px">' +
-        '<button class="btn" data-act="add-budget" data-section="' + sec.id + '">➕ סעיף חדש</button>' +
-        '<span class="spacer"></span>' +
-        '<button class="btn sm danger" data-act="del-budget-section" data-id="' + sec.id + '">מחיקת הקטגוריה</button>' +
-        '</div></div>';
+        '<span class="small muted">מתוכנן</span><b data-total="bsec:planned:' + esc(sec.key) + '">' + nis(st.planned) + '</b>' +
+        '<span class="small muted">בפועל</span><b data-total="bsec:actual:' + esc(sec.key) + '">' + nis(st.actual) + '</b></div>' +
+        (sec.unknown ? '' : '<div class="row" style="margin-top:10px">' +
+          '<button class="btn" data-act="add-budget" data-section="' + sec.key + '">➕ סעיף חדש</button>' +
+          '<span class="spacer"></span>' +
+          '<button class="btn sm danger" data-act="del-budget-section" data-id="' + sec.key + '">מחיקת הקטגוריה</button>' +
+          '</div>') + '</div>';
     });
 
     // --- ניהול קטגוריות ---
@@ -1989,8 +2352,8 @@ var SEED_CONTACTS = [
       '<input id="nbsName" placeholder="שם קטגוריה חדשה, למשל: שיפוץ" style="flex:2 1 180px">' +
       '<label class="row small" style="gap:6px;flex:none"><input type="checkbox" id="nbsRecurring"> הוצאה חוזרת (חודשית)</label>' +
       '<button class="btn primary" data-act="add-budget-section">הוספה</button></div>' +
-      '<div class="small muted" style="margin-top:8px">קטגוריות מסומנות כ"חוזרות" נספרות בנפרד בסקירה, ' +
-      'תחת «הוצאות שוטפות», ולא מתערבבות בעלות החד-פעמית של המעבר.</div>' +
+      '<div class="small muted" style="margin-top:8px">קטגוריה מסומנת כ"חוזרת" נמדדת ב-₪ לחודש ' +
+      'ונספרת רק בכרטיס «עלות חודשית שוטפת». היא לעולם לא מתחברת לתקציב המעבר החד-פעמי.</div>' +
       '<div class="seclist">' + state.budgetSections.map(function (s) {
         var n = sectionStats(s.id).count;
         return '<div class="secrow"><b>' + esc(s.name) + '</b>' +
@@ -2007,11 +2370,11 @@ var SEED_CONTACTS = [
     var sv = serviceStats();
     var h = '<div class="card"><h2>העברת שירותים <span class="sub">' + sv.done + '/' + sv.total + ' הושלמו</span></h2>' +
       '<div class="bar"><i style="width:' + pct(sv.done, sv.total) + '%"></i></div>' +
-      '<div class="small muted" style="margin-top:8px">מספרי הטלפון הם ברירת מחדל לנוחות – כדאי לאמת מול הספק שלכם.</div></div>';
+      '</div>';
 
     h += toolbar('services', [
       ['status', 'סטטוס', filt('services', 'status'),
-        [['', 'כל הסטטוסים']].concat(SERVICE_STATUS.map(function (x) { return [x.id, x.label]; }))],
+        [['', 'כל הסטטוסים']].concat(enumFilterOpts(SERVICE_STATUS, state.services, 'status'))],
       ['provider', 'ספק', filt('services', 'provider'),
         [['', 'כל הספקים']].concat(uniq(state.services.map(function (x) { return (x.provider || '').trim(); }))
           .map(function (v) { return [v, v]; }))]
@@ -2028,12 +2391,12 @@ var SEED_CONTACTS = [
     svcList.forEach(function (s, i) {
       var stl = SERVICE_STATUS.filter(function (x) { return x.id === s.status; })[0];
       h += '<div class="card" data-drag-item data-id="' + s.id + '">' + rank(i, svManual) + '<h2>' + esc(s.name) +
-        '<span class="tag ' + (s.status === 'done' ? 'ok' : s.status === 'wip' ? 'warn' : '') + '">' + esc(stl ? stl.label : '') + '</span></h2>' +
+        '<span class="tag ' + (s.status === 'done' ? 'ok' : s.status === 'wip' ? 'warn' : '') + '">' + esc(stl ? stl.label : (s.status || 'ללא סטטוס')) + '</span></h2>' +
         '<div class="row">' +
         '<label class="f">ספק<input value="' + esc(s.provider || '') + '" ' + bind('services', s.id, 'provider') + '></label>' +
         '<label class="f">טלפון<input value="' + esc(s.phone || '') + '" ' + bind('services', s.id, 'phone') + '></label>' +
         '<label class="f">מס\' לקוח/חוזה<input value="' + esc(s.account || '') + '" ' + bind('services', s.id, 'account') + '></label>' +
-        '<label class="f">סטטוס<select ' + bind('services', s.id, 'status') + '>' + opts(SERVICE_STATUS, s.status, 'id', 'label') + '</select></label>' +
+        '<label class="f">סטטוס<select ' + bind('services', s.id, 'status') + '>' + optsWith(SERVICE_STATUS, s.status, 'id', 'label') + '</select></label>' +
         '</div>' +
         '<label class="f" style="margin-top:8px">הערות<textarea ' + bind('services', s.id, 'notes') + '>' + esc(s.notes || '') + '</textarea></label>' +
         '<div class="row" style="margin-top:8px">' +
@@ -2646,6 +3009,16 @@ var SEED_CONTACTS = [
     if (!el) return;
     var act = el.dataset.act;
 
+    if (act === 'flag') {
+      var fi = findItem(el.dataset.coll, el.dataset.id);
+      if (!fi) return;
+      var ff = el.dataset.field;
+      fi[ff] = !fi[ff];
+      // מתנה משמעה שהפריט כבר בבית, ולכן היא מסמנת אותו גם כנקנה.
+      if (ff === 'gift' && fi.gift) fi.bought = true;
+      save(); render();
+      return;
+    }
     if (act === 'del') {
       var it = findItem(el.dataset.coll, el.dataset.id);
       if (!it) return;
@@ -2721,7 +3094,7 @@ var SEED_CONTACTS = [
       if (!sn.value.trim()) { sn.focus(); return; }
       state.shopping.push({
         id: uid(), area: $('#nsArea').value, name: sn.value.trim(),
-        prio: $('#nsPrio').value, est: 0, cost: 0, store: '', link: '', bought: false
+        prio: $('#nsPrio').value, est: 0, cost: 0, store: '', link: '', bought: false, gift: false
       });
       save(); render(); toast('נוסף לרשימת הקניות');
     }
@@ -2838,16 +3211,6 @@ var SEED_CONTACTS = [
     save();
     return true;
   }
-  // capture, כדי שהכיתוב יתעדכן לפני כל מטפל אחר – גם כשאחריו מגיע render()
-  // וגם כשלא.
-  var dateTextSync = function (e) {
-    var el = e.target;
-    if (el && el.type === 'date' && el.parentNode && el.parentNode.classList &&
-      el.parentNode.classList.contains('datef')) syncDateText(el);
-  };
-  document.addEventListener('input', dateTextSync, true);
-  document.addEventListener('change', dateTextSync, true);
-
   document.addEventListener('input', function (e) {
     var el = e.target.closest('[data-act="edit"]');
     if (!el) return;
@@ -2882,7 +3245,15 @@ var SEED_CONTACTS = [
     var tg = e.target.closest('[data-act="toggle"]');
     if (tg) {
       var it = findItem(tg.dataset.coll, tg.dataset.id);
-      if (it) { it[tg.dataset.field] = tg.checked; save(); render(); }
+      if (it) {
+        it[tg.dataset.field] = tg.checked;
+        // מתנה היא פריט שכבר יש בבית: סימון 🎁 מסמן אותו גם כנקנה.
+        // הכיוון ההפוך לא אוטומטי – ביטול המתנה לא מבטל את הקנייה.
+        if (tg.dataset.field === 'gift' && tg.checked) it.bought = true;
+        // וההפך: פריט שכבר לא נקנה גם אינו מתנה
+        if (tg.dataset.field === 'bought' && !tg.checked) it.gift = false;
+        save(); render();
+      }
       return;
     }
     if (e.target.dataset && e.target.dataset.sortfor) {
@@ -2905,8 +3276,15 @@ var SEED_CONTACTS = [
     [].forEach.call(els, function (n) {
       var p = String(n.dataset.total).split(':');
       var kind = p[0], field = p[1], key = p.slice(2).join(':');
+      // 'txt' הוא טקסט מחושב (שורת המצב של כל סיכום) ולא סכום בשקלים
+      if (kind === 'txt') {
+        var t = field === 'once' ? C.onceBadge(state, nis) : C.monthlyBadge(state, nis);
+        n.textContent = t.text;
+        n.className = 'money-note ' + t.tone;
+        return;
+      }
       var src;
-      if (kind === 'bg') src = (bg = bg || budgetStats());
+      if (kind === 'bg') src = (bg = bg || budgetTotals());
       else if (kind === 'sh') src = (sh = sh || shopStats());
       else if (kind === 'bsec') src = sectionStats(key);
       else if (kind === 'ssec') src = areaStats(key);
@@ -2952,7 +3330,7 @@ var SEED_CONTACTS = [
       '<div class="row"><h2>הגדרות</h2><span class="spacer"></span><button class="x" data-s="close">✕</button></div>' +
 
       '<div class="sect"><h3>פרטי המעבר</h3><div class="row">' +
-      '<label class="f">תאריך המעבר' + dateField(s.moveDate, 'id="stDate"') + '</label>' +
+      '<label class="f">תאריך המעבר<input type="date" id="stDate" value="' + esc(s.moveDate || '') + '"></label>' +
       '<label class="f">חברת הובלה<input id="stMovers" value="' + esc(s.movers || '') + '"></label></div>' +
       '<div class="row" style="margin-top:8px">' +
       '<label class="f">כתובת נוכחית<input id="stFrom" value="' + esc(s.fromAddr || '') + '" placeholder="רחוב, עיר"></label>' +
