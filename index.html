@@ -257,6 +257,7 @@ button.alert-card.danger{border-color:var(--danger);background:var(--danger-soft
 button.alert-card:hover{filter:brightness(1.08)}
 button.alert-card:active{transform:scale(.99)}
 button.alert-card:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
+button.alert-card b{display:block}
 button.alert-card .small{margin-top:4px;opacity:.85}
 .alert-go{
   display:inline-block;margin-top:8px;font-size:12.5px;font-weight:600;
@@ -309,9 +310,14 @@ label.f{display:flex;flex-direction:column;gap:5px;font-size:12px;color:var(--mu
 /* שורת הכותרת: שם הפריט, 🎁, 🔗 ו-✕ – כולם באותה שורה ובאותו גובה */
 .task > .icontoggle,
 .task > .x{height:26px;width:26px;padding:0;display:grid;place-items:center;margin-top:0}
-.task .t input.title{min-height:26px}
-.task .t input.title{border:0;background:transparent;padding:2px 0;font-weight:500}
-.task.done .t input.title{text-decoration:line-through;color:var(--muted)}
+/* שם הפריט נשבר לשורות במקום להיחתך. resize ו-overflow מבוטלים כי הגובה
+   מחושב ב-growTitles לפי התוכן, ו-min-height שומר על יישור מול ✕ / 🎁 / 🔗. */
+.task .t textarea.title{
+  border:0;background:transparent;padding:2px 0;font-weight:500;
+  width:100%;min-height:26px;height:26px;line-height:1.4;
+  resize:none;overflow:hidden;white-space:pre-wrap;word-break:break-word
+}
+.task.done .t textarea.title{text-decoration:line-through;color:var(--muted)}
 /* flex-wrap חיוני: בלעדיו שורת הפרטים גולשת מהכרטיס ונחתכת במסך צר */
 .task .meta{display:flex;gap:6px;align-items:center;margin-top:4px;flex-wrap:wrap}
 .task .meta input[type=date]{border:0;background:transparent;color:var(--muted);font-size:12px;padding:0;width:auto;max-width:100%}
@@ -320,7 +326,7 @@ label.f{display:flex;flex-direction:column;gap:5px;font-size:12px;color:var(--mu
 /* במסך צר כל האלמנטים מתכווצים, כדי שהשורה תישאר קריאה ולא תיחתך */
 @media(max-width:480px){
   .task{gap:7px;padding:8px 2px}
-  .task .t input.title{font-size:14.5px}
+  .task .t textarea.title{font-size:14.5px}
   .task input[type=checkbox]{width:17px;height:17px;margin-top:3px}
   .task .meta{gap:4px;margin-top:5px}
   .task .meta .small{display:none}          /* התווית "יעד:" מיותרת ליד שדה תאריך */
@@ -436,8 +442,30 @@ label.f{display:flex;flex-direction:column;gap:5px;font-size:12px;color:var(--mu
   .task > .x{width:24px;height:24px;font-size:13px}
 }
 @media(max-width:520px){
-  .shopmeta.buy,
-  .shopmeta.bud{grid-template-columns:repeat(2,1fr)}
+  /* בנייד שורת הפריט נפרסת לשתי שורות: כותרת + הכפתורים למעלה, ושורת
+     השדות מתחת לכל רוחב הכרטיס. כשהשדות היו כלואים בתוך .t נשארו להם
+     165px מתוך 375 – כל השאר הלך לכפתורים – והטקסט ב-select נחתך.
+     display:contents מוציא את ילדי .t לרשת עצמה, בלי לשנות את ה-HTML. */
+  .task{
+    display:grid;align-items:center;
+    grid-template-columns:auto auto minmax(0,1fr) auto auto auto;
+    column-gap:7px;row-gap:6px
+  }
+  .task .t{display:contents}
+  .task > .rank,
+  .task > input[type=checkbox],
+  .task > .icontoggle,
+  .task > .x{grid-row:1}
+  .task .t textarea.title{grid-row:1;grid-column:3}
+  .task .meta,
+  .task .shopmeta{grid-row:2;grid-column:1/-1}
+  /* שלוש עמודות נכנסות עכשיו ברווח, והשדה האחרון סוגר את השורה */
+  .shopmeta.buy{grid-template-columns:repeat(3,1fr);gap:7px 8px}
+  .shopmeta.buy > :last-child{grid-column:span 2}
+  .shopmeta.bud{grid-template-columns:repeat(2,1fr);gap:7px 8px}
+  .shopmeta.bud > :nth-child(3),
+  .shopmeta.bud > :last-child{grid-column:1/-1}
+  .shopmeta .mini{padding:6px 8px;font-size:12px}
 }
 select.mini.urgent{background:var(--warn-soft);color:var(--warn);border-color:transparent;font-weight:600}
 .task.done .shopmeta{opacity:.55}
@@ -600,7 +628,7 @@ body.dragging-active .rank{cursor:grabbing}
 <div class="toast hidden" id="toast"></div>
 
 <script>
-window.BUILD_STAMP = "2026-09-02 | 22:01";
+window.BUILD_STAMP = "2026-09-02 | 22:31";
 </script>
 <script>
 /* ===== נתוני ברירת מחדל – רשימות מוכנות לעברית =====
@@ -1108,69 +1136,18 @@ var AfulaCalc = (function () {
     return arr(state && state.services).filter(function (s) { return s.status !== 'done'; });
   }
 
-  // "א, ב ו־ג ועוד 2" – בלי שום שם שלא הגיע מהנתונים.
-  function joinNames(names, max) {
-    var lim = max || 3;
-    var head = names.slice(0, lim), rest = names.length - head.length;
-    var s = head.length > 1
-      ? head.slice(0, -1).join(', ') + ' ו' + head[head.length - 1]
-      : (head[0] || '');
-    if (rest > 0) s += ' ועוד ' + rest;
-    return s;
-  }
-
-  function daysToMove(state, todayIso) {
-    var d = state && state.settings && state.settings.moveDate;
-    if (!d || !todayIso) return null;
-    var a = new Date(todayIso + 'T00:00:00'), b = new Date(d + 'T00:00:00');
-    if (isNaN(a) || isNaN(b)) return null;
-    return Math.round((b - a) / 86400000);
-  }
-
-  // הניסוח משתנה לפי המרחק מהתאריך, ונגזר ממנו בלבד.
-  function urgencyText(days) {
-    if (days == null) return '';
-    if (days < 0) return days === -1 ? 'המעבר היה אתמול' : 'עברו ' + Math.abs(days) + ' ימים מהמעבר';
-    if (days === 0) return 'היום יום המעבר';
-    if (days === 1) return 'נשאר יום אחד למעבר';
-    if (days < 14) return 'נשארו ' + days + ' ימים למעבר';
-    return 'נשארו כ־' + Math.round(days / 7) + ' שבועות למעבר';
-  }
-
-  // הנחיית זמן אמיתית היא רק מה שכתוב בהערות של השירות עצמו.
-  function firstSentence(txt, max) {
-    var t = String(txt == null ? '' : txt).trim().replace(/\s+/g, ' ');
-    if (!t) return '';
-    var stop = t.search(/[.!?;]/);
-    if (stop > 0) t = t.slice(0, stop);
-    var lim = max || 70;
-    return t.length > lim ? t.slice(0, lim - 1).trim() + '…' : t;
-  }
-  function leadNotes(list, max) {
-    var out = [], lim = max || 2;
-    list.forEach(function (s) {
-      if (out.length >= lim) return;
-      var n = firstSentence(s.notes);
-      if (n) out.push(String(s.name || '').trim() + ': ' + n);
-    });
-    return out;
-  }
-
+  // הכרטיס אומר כמה שירותים פתוחים, וזהו. משפט מפורט על שמות, זמנים
+  // והנחיות היה רעש: הפרטים ממילא נמצאים במסך השירותים עצמו.
   // מחזיר null כשאין שירות פתוח – ואז הכרטיס לא מוצג בכלל.
-  function serviceAlert(state, todayIso) {
+  function serviceAlert(state) {
     var open = openServices(state);
     if (!open.length) return null;
-    var names = open.map(function (s) { return String(s.name || '').trim(); })
-      .filter(function (n) { return n; });
-    var title = open.length === 1
-      ? 'שירות אחד עדיין לא הועבר'
-      : open.length + ' שירותים עדיין לא הועברו';
-    var parts = [];
-    var u = urgencyText(daysToMove(state, todayIso));
-    if (u) parts.push(u);
-    if (names.length) parts.push(names.length === 1 ? names[0] : 'פתוחים: ' + joinNames(names));
-    leadNotes(open).forEach(function (n) { parts.push(n); });
-    return { icon: '🔌', tab: 'services', cta: 'לשירותים', title: title, sub: parts.join(' · ') };
+    return {
+      icon: '🔌', tab: 'services', cta: 'לשירותים',
+      title: open.length === 1
+        ? 'שירות אחד עדיין לא הועבר'
+        : open.length + ' שירותים עדיין לא הועברו'
+    };
   }
 
   return {
@@ -1182,9 +1159,7 @@ var AfulaCalc = (function () {
     sectionStats: sectionStats, sectionGroups: sectionGroups, budgetStats: budgetStats,
     dataWarnings: dataWarnings, estCoverageText: estCoverageText,
     onceBadge: onceBadge, monthlyBadge: monthlyBadge,
-    openServices: openServices, joinNames: joinNames, daysToMove: daysToMove,
-    urgencyText: urgencyText, firstSentence: firstSentence, leadNotes: leadNotes,
-    serviceAlert: serviceAlert
+    openServices: openServices, serviceAlert: serviceAlert
   };
 })();
 
@@ -1780,6 +1755,22 @@ var AfulaCalc = (function () {
     return out;
   }
 
+  // שם הפריט הוא textarea ולא input: בנייד שם ארוך נחתך באמצע, והיה צריך
+  // לגלול בתוך תיבה צרה כדי לקרוא אותו. עכשיו הוא נשבר לשורות, וגובהו
+  // מתאים את עצמו לתוכן ב-growTitles שרץ בסוף כל render.
+  function titleBox(collName, id, field, value, placeholder) {
+    return '<textarea class="title" rows="1"' +
+      (placeholder ? ' placeholder="' + esc(placeholder) + '"' : '') +
+      ' ' + bind(collName, id, field) + '>' + esc(value == null ? '' : value) + '</textarea>';
+  }
+  function growTitles() {
+    var els = document.querySelectorAll('textarea.title');
+    [].forEach.call(els, function (el) {
+      el.style.height = 'auto';
+      el.style.height = el.scrollHeight + 'px';
+    });
+  }
+
   function bind(coll, id, field, extra) {
     return 'data-act="edit" data-coll="' + coll + '" data-id="' + id + '" data-field="' + field + '"' + (extra || '');
   }
@@ -1923,7 +1914,7 @@ var AfulaCalc = (function () {
 
     // הכרטיס כולו נבנה מהרשומות עצמן: השמות, הדחיפות וההנחיות מגיעים
     // מ-services ומ-moveDate. אין כאן שום שם שירות או זמן הכנה קבוע בקוד.
-    var svcAlert = C.serviceAlert(state, todayISO());
+    var svcAlert = C.serviceAlert(state);
     if (svcAlert) h += alertCard(svcAlert);
 
     // המשימות הקרובות
@@ -2035,7 +2026,7 @@ var AfulaCalc = (function () {
         h += '<div class="task' + (t.done ? ' done' : '') + '" data-drag-item data-id="' + t.id + '">' +
           rank(i, tManual) +
           '<input type="checkbox"' + (t.done ? ' checked' : '') + ' data-act="toggle" data-coll="tasks" data-id="' + t.id + '" data-field="done">' +
-          '<div class="t"><input class="title" value="' + esc(t.title) + '" ' + bind('tasks', t.id, 'title') + '>' +
+          '<div class="t">' + titleBox('tasks', t.id, 'title', t.title) +
           '<div class="meta">' +
           // העברת המשימה לשלב אחר – אייקון שפותח רשימה נפתחת עם כל השלבים
           '<span class="phase-pick" title="העברה לשלב אחר"><i aria-hidden="true">⇄</i>' +
@@ -2189,7 +2180,7 @@ var AfulaCalc = (function () {
         h += '<div class="task' + (got ? ' done' : '') + '" data-drag-item data-id="' + s.id + '">' +
           rank(i, sManual) +
           '<input type="checkbox"' + (got ? ' checked' : '') + ' data-act="toggle" data-coll="shopping" data-id="' + s.id + '" data-field="bought">' +
-          '<div class="t"><input class="title" value="' + esc(s.name) + '" ' + bind('shopping', s.id, 'name') + '>' +
+          '<div class="t">' + titleBox('shopping', s.id, 'name', s.name) +
           '<div class="shopmeta buy">' +
           '<select ' + bind('shopping', s.id, 'prio') + ' class="mini' + (s.prio === 'must' && !s.bought ? ' urgent' : '') + '">' +
           optsWith(SHOP_PRIO, s.prio, 'id', 'label') + '</select>' +
@@ -2321,8 +2312,7 @@ var AfulaCalc = (function () {
           rank(i, buManual) +
           '<input type="checkbox"' + (r.paid ? ' checked' : '') +
           ' title="שולם" data-act="toggle" data-coll="budget" data-id="' + r.id + '" data-field="paid">' +
-          '<div class="t"><input class="title" value="' + esc(r.cat) + '" placeholder="שם הסעיף" ' +
-          bind('budget', r.id, 'cat') + '>' +
+          '<div class="t">' + titleBox('budget', r.id, 'cat', r.cat, 'שם הסעיף') +
           '<div class="shopmeta bud">' +
           '<input type="number" inputmode="numeric" min="0" class="mini" placeholder="מתוכנן ₪" value="' +
           (r.planned || '') + '" ' + bind('budget', r.id, 'planned') + '>' +
@@ -2604,6 +2594,7 @@ var AfulaCalc = (function () {
     var keepY = window.scrollY;
     $('#views').innerHTML = warn + (VIEWS[view] || viewDash)();
     $('#searchClear').classList.toggle('hidden', !query());
+    growTitles();
     if (sameView) window.scrollTo({ top: keepY });
     else window.scrollTo({ top: 0 });
     render._last = view;
@@ -3216,6 +3207,7 @@ var AfulaCalc = (function () {
     if (!el) return;
     if (el.tagName === 'SELECT' || el.type === 'date') return;
     applyEdit(el);
+    if (el.classList.contains('title')) { el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px'; }
     if (el.dataset.coll === 'budget' || el.dataset.coll === 'shopping') refreshTotals();
   });
   document.addEventListener('change', function (e) {
