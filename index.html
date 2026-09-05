@@ -668,7 +668,7 @@ body.dragging-active .rank{cursor:grabbing}
 <div class="toast hidden" id="toast"></div>
 
 <script>
-window.BUILD_STAMP = "2026-09-05 | 22:04";
+window.BUILD_STAMP = "2026-09-05 | 22:20";
 </script>
 <script>
 /* ===== נתוני ברירת מחדל – רשימות מוכנות לעברית =====
@@ -2279,7 +2279,12 @@ var AfulaCalc = (function () {
       h += '</div><div class="sectotal"><span>סה"כ</span><span class="spacer"></span>' +
         '<span class="small muted">משוער</span><b data-total="ssec:est:' + esc(g.key) + '">' + nis(ast.est) + '</b>' +
         '<span class="small muted">בפועל</span><b data-total="ssec:spend:' + esc(g.key) + '">' + nis(ast.spend) + '</b>' +
-        '</div></div>';
+        '</div>' +
+        // הוספה מתוך הקטגוריה עצמה, כמו בתקציב – בלי לגלול לראש המסך.
+        // קבוצת "ללא אזור" אינה קטגוריה אמיתית ולכן אין לה כפתור.
+        (g.unknown ? '' : '<div class="row" style="margin-top:10px">' +
+          '<button class="btn" data-act="add-shop-in" data-area="' + esc(g.key) + '">➕ פריט חדש</button></div>') +
+        '</div>';
     });
     if (!shopShown) h += '<div class="card"><div class="empty">לא נמצאו פריטים מתאימים</div></div>';
 
@@ -2668,6 +2673,16 @@ var AfulaCalc = (function () {
     state.boxes.forEach(function (b, i) { b.num = i + 1; });
   }
 
+  // השורה הראשונה שעוד נראית על המסך, והמרחק שלה מראש החלון.
+  function scrollAnchor() {
+    var nodes = $('#views').querySelectorAll('[data-drag-item][data-id]');
+    for (var i = 0; i < nodes.length; i++) {
+      var r = nodes[i].getBoundingClientRect();
+      if (r.bottom > 0) return { id: nodes[i].dataset.id, top: r.top };
+    }
+    return null;
+  }
+
   function render() {
     renderDrawer();
     var warn = safeLS.ok ? '' :
@@ -2679,11 +2694,25 @@ var AfulaCalc = (function () {
     // מסך – אחרת המשתמש "נזרק" למעלה אחרי כל לחיצה על ✕.
     var sameView = render._last === view;
     var keepY = window.scrollY;
+    // שמירת scrollY לבדה לא מספיקה: סימון פריט יכול להוסיף או להסיר שורת
+    // אזהרה בכרטיס שלמעלה, ואז כל התוכן שמתחת זז בכמה עשרות פיקסלים והמסך
+    // "קופץ". לכן נשמר עוגן – השורה הראשונה שנראית על המסך והמרחק שלה
+    // מראש החלון – ומחזירים אותה בדיוק לאותו מקום.
+    var anchor = sameView ? scrollAnchor() : null;
     $('#views').innerHTML = warn + (VIEWS[view] || viewDash)();
     $('#searchClear').classList.toggle('hidden', !query());
     growTitles();
-    if (sameView) window.scrollTo({ top: keepY });
-    else window.scrollTo({ top: 0 });
+    if (!sameView) window.scrollTo({ top: 0 });
+    else {
+      window.scrollTo({ top: keepY });
+      if (anchor) {
+        var back = $('#views').querySelector('[data-drag-item][data-id="' + anchor.id + '"]');
+        if (back) {
+          var d = back.getBoundingClientRect().top - anchor.top;
+          if (d) window.scrollBy(0, d);
+        }
+      }
+    }
     render._last = view;
     // כל שינוי במסך, במיון או בסינון עובר דרך כאן, ולכן זו הנקודה
     // הבטוחה היחידה לשמור את מצב התצוגה לרענון הבא
@@ -3092,8 +3121,10 @@ var AfulaCalc = (function () {
       if (!fi) return;
       var ff = el.dataset.field;
       fi[ff] = !fi[ff];
-      // מתנה משמעה שהפריט כבר בבית, ולכן היא מסמנת אותו גם כנקנה.
-      if (ff === 'gift' && fi.gift) fi.bought = true;
+      // מתנה משמעה שהפריט כבר בבית, ולכן היא מסמנת אותו גם כנקנה – וביטולה
+      // מסיר גם את הסימון. פריט שהפסיק להיות מתנה אינו פריט שנקנה: להשאיר
+      // אותו מסומן הפך אותו ל"נקנה בלי שנרשם מחיר", ואת שורת המצב לאזהרה.
+      if (ff === 'gift') fi.bought = fi.gift;
       save(); render();
       return;
     }
@@ -3178,6 +3209,17 @@ var AfulaCalc = (function () {
         prio: $('#nsPrio').value, est: 0, cost: 0, store: '', link: '', bought: false, gift: false
       });
       save(); render(); toast('נוסף לרשימת הקניות');
+    }
+    else if (act === 'add-shop-in') {
+      var nid = uid();
+      state.shopping.push({
+        id: nid, area: el.dataset.area || state.shopAreas[0], name: '',
+        prio: 'soon', est: 0, cost: 0, store: '', link: '', bought: false, gift: false
+      });
+      save(); render();
+      // השורה נולדת ריקה בדיוק מעל הכפתור שנלחץ, והפוקוס עובר אליה
+      var nf = document.querySelector('[data-coll="shopping"][data-id="' + nid + '"][data-field="name"]');
+      if (nf) nf.focus();
     }
     else if (act === 'add-doc') {
       state.docs.push({ id: uid(), type: 'other', title: 'רשומה חדשה', date: '', value: '', link: '', notes: '' });
@@ -3343,9 +3385,10 @@ var AfulaCalc = (function () {
       var it = findItem(tg.dataset.coll, tg.dataset.id);
       if (it) {
         it[tg.dataset.field] = tg.checked;
-        // מתנה היא פריט שכבר יש בבית: סימון 🎁 מסמן אותו גם כנקנה.
-        // הכיוון ההפוך לא אוטומטי – ביטול המתנה לא מבטל את הקנייה.
-        if (tg.dataset.field === 'gift' && tg.checked) it.bought = true;
+        // מתנה היא פריט שכבר יש בבית: סימון 🎁 מסמן אותו גם כנקנה –
+        // וביטול המתנה מבטל גם את זה. פריט שלא התקבל במתנה אינו פריט שנקנה:
+        // להשאיר אותו מסומן הפך אותו ל"נקנה בלי שנרשם מחיר", שזו אזהרה שגויה.
+        if (tg.dataset.field === 'gift') it.bought = tg.checked;
         // וההפך: פריט שכבר לא נקנה גם אינו מתנה
         if (tg.dataset.field === 'bought' && !tg.checked) it.gift = false;
         save(); render();
