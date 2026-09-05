@@ -520,11 +520,9 @@ select.mini.urgent{background:var(--warn-soft);color:var(--warn);border-color:tr
   .box{padding:8px;gap:7px}
   .box > .rank{margin-top:8px}
 }
-.tagline{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
 .tag{font-size:11px;padding:3px 8px;border-radius:99px;background:var(--line);color:var(--muted)}
 .tag.ok{background:var(--ok-soft);color:var(--ok)}
 .tag.warn{background:var(--warn-soft);color:var(--warn)}
-.tag.fragile{background:var(--danger-soft);color:var(--danger)}
 
 /* ---- Table (budget) ---- */
 .tablewrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
@@ -670,7 +668,7 @@ body.dragging-active .rank{cursor:grabbing}
 <div class="toast hidden" id="toast"></div>
 
 <script>
-window.BUILD_STAMP = "2026-09-05 | 21:49";
+window.BUILD_STAMP = "2026-09-05 | 22:04";
 </script>
 <script>
 /* ===== נתוני ברירת מחדל – רשימות מוכנות לעברית =====
@@ -2150,8 +2148,7 @@ var AfulaCalc = (function () {
     if (!state.boxes.length) h += '<div class="empty">עדיין אין ארגזים. מוסיפים ארגז ומדביקים עליו את המספר.</div>';
     else if (!list.length) h += '<div class="empty">לא נמצאו ארגזים מתאימים</div>';
     else h += '<div class="grid" data-drag-group data-drag-coll="boxes">' + list.map(function (x, i) {
-      var st = BOX_STATUS.filter(function (s) { return s.id === x.status; })[0];
-      return '<div class="box" data-drag-item data-id="' + x.id + '">' + rank(i, bManual) +
+      return '<div class="box" data-drag-item data-id="' + x.id + '">' + rank(i, bManual, x.num) +
         // מספר הארגז עצמו (x.num) נשאר בנתונים, במיון ובתוויות להדפסה, אבל
         // אינו מוצג עוד ככרטיסייה: מספר השורה שמימין כבר ממלא את התפקיד.
         '<div class="body">' +
@@ -2164,9 +2161,11 @@ var AfulaCalc = (function () {
         '<select ' + bind('boxes', x.id, 'status') + '>' + optsWith(BOX_STATUS, x.status, 'id', 'label') + '</select>' +
         '<label class="row small" style="gap:5px;flex:none"><input type="checkbox"' + (x.fragile ? ' checked' : '') +
         ' data-act="toggle" data-coll="boxes" data-id="' + x.id + '" data-field="fragile"> שביר</label>' +
+        '<button class="x" data-act="print-label" data-id="' + x.id + '" ' +
+        'title="הדפסת התווית של הארגז הזה" aria-label="הדפסת התווית של הארגז הזה">🖨️</button>' +
         '<button class="x" data-act="del" data-coll="boxes" data-id="' + x.id + '">✕</button></div>' +
-        '<div class="tagline"><span class="tag' + (x.status === 'opened' ? ' ok' : x.status === 'todo' ? '' : ' warn') + '">' +
-        esc(st ? st.label : (x.status || 'ללא סטטוס')) + '</span>' + (x.fragile ? '<span class="tag fragile">⚠️ שביר</span>' : '') + '</div>' +
+        // אין שורת תגים: הסטטוס והשבירות כבר מופיעים בשורה שמעל – ב-select
+        // ובתיבת הסימון – ותג שחוזר על פקד שנמצא לידו הוא רעש.
         '</div></div>';
     }).join('') + '</div>';
     h += '</div>';
@@ -2623,7 +2622,10 @@ var AfulaCalc = (function () {
     dragCtx = null;
     var ids = [].slice.call(group.querySelectorAll('[data-drag-item]'))
       .map(function (n) { return n.dataset.id; });
-    if (applyOrder(coll, ids)) { save(); render(); }
+    if (applyOrder(coll, ids)) {
+      if (coll === 'boxes') renumberBoxes();
+      save(); render();
+    }
   }
 
   // כותב את הסדר החדש למערך המצב. הפריטים הנגררים תופסים בדיוק את
@@ -2650,11 +2652,20 @@ var AfulaCalc = (function () {
   // המספר הוא גם ידית הגרירה, בכל המסכים: אותו מידע, פעולה אחת.
   // כשמיון אחר מ"ידני" פעיל המספר נשאר לקריאוּת אך מוצג עמום ולא נגרר,
   // כי אז הסדר המוצג אינו הסדר השמור וגרירה הייתה מטעה.
-  function rank(i, manual) {
+  // label מאפשר להציג מספר משלו במקום מיקום השורה. הארגזים משתמשים בזה
+  // כדי להציג את x.num – המספר שמודפס על התווית – גם כשסינון מסתיר שורות.
+  function rank(i, manual, label) {
+    var n = (label == null) ? (i + 1) : label;
     return manual
       ? '<button type="button" class="rank" data-grip title="גרירה לשינוי הסדר" ' +
-        'aria-label="גרירה לשינוי הסדר">' + (i + 1) + '</button>'
-      : '<span class="rank static">' + (i + 1) + '</span>';
+        'aria-label="גרירה לשינוי הסדר">' + n + '</button>'
+      : '<span class="rank static">' + n + '</span>';
+  }
+
+  // מספר הארגז הוא מיקומו ברשימה השמורה, ולכן גם המספר שעל התווית
+  // משתנה יחד עם הסדר. נקרא אחרי הוספה, מחיקה וכל גרירה.
+  function renumberBoxes() {
+    state.boxes.forEach(function (b, i) { b.num = i + 1; });
   }
 
   function render() {
@@ -3090,6 +3101,7 @@ var AfulaCalc = (function () {
       var it = findItem(el.dataset.coll, el.dataset.id);
       if (!it) return;
       state[el.dataset.coll] = coll(el.dataset.coll).filter(function (x) { return x.id !== el.dataset.id; });
+      if (el.dataset.coll === 'boxes') renumberBoxes();
       save(); render(); toast('נמחק');
     }
     else if (act === 'add-task') {
@@ -3099,12 +3111,14 @@ var AfulaCalc = (function () {
       save(); render(); toast('משימה נוספה');
     }
     else if (act === 'add-box') {
-      var max = state.boxes.reduce(function (m, b) { return Math.max(m, Number(b.num) || 0); }, 0);
-      state.boxes.unshift({
-        id: uid(), num: max + 1, contents: $('#nbContents').value.trim(),
+      // נדחף לסוף ולא לראש: כך המספרים הקיימים – והתוויות שכבר הודבקו –
+      // לא זזים, והארגז החדש מקבל את המספר הפנוי הבא.
+      state.boxes.push({
+        id: uid(), num: state.boxes.length + 1, contents: $('#nbContents').value.trim(),
         from: $('#nbFrom').value, to: $('#nbTo').value, status: 'todo', fragile: false
       });
-      save(); render(); toast('ארגז מס\' ' + (max + 1) + ' נוסף');
+      renumberBoxes();
+      save(); render(); toast('ארגז מס\' ' + state.boxes.length + ' נוסף');
     }
     else if (act === 'add-budget') {
       state.budget.push({
@@ -3191,6 +3205,10 @@ var AfulaCalc = (function () {
     else if (act === 'gcal-sync') gcalSync();
     else if (act === 'gcal-pull') gcalPull();
     else if (act === 'print-labels') printLabels();
+    else if (act === 'print-label') {
+      var bx = findItem('boxes', el.dataset.id);
+      if (bx) printLabels([bx]);
+    }
     else if (act === 'settings') openSettings();
     else if (act === 'clear-search') {
       $('#globalSearch').value = '';
@@ -3371,8 +3389,10 @@ var AfulaCalc = (function () {
   }
 
   /* ---------- הדפסת תוויות ---------- */
-  function printLabels() {
-    if (!state.boxes.length) { toast('אין ארגזים להדפסה'); return; }
+  // בלי רשימה – כל הארגזים; עם רשימה – התוויות שבה בלבד.
+  function printLabels(list) {
+    list = list || state.boxes;
+    if (!list.length) { toast('אין ארגזים להדפסה'); return; }
     var html = '<!doctype html><html lang="he" dir="rtl"><head><meta charset="utf-8"><title>תוויות ארגזים</title><style>' +
       'body{font-family:Rubik,Arial,sans-serif;margin:8mm}' +
       '.g{display:grid;grid-template-columns:1fr 1fr;gap:6mm}' +
@@ -3381,7 +3401,7 @@ var AfulaCalc = (function () {
       '.r{font-size:20pt;font-weight:700}.c{font-size:12pt}.f{font-size:14pt;font-weight:700;color:#b91c1c}' +
       '.a{font-size:10pt;color:#555;border-top:1px solid #999;padding-top:2mm}' +
       '</style></head><body><div class="g">' +
-      state.boxes.map(function (b) {
+      list.map(function (b) {
         return '<div class="l"><div><div class="n">#' + b.num + '</div>' +
           '<div class="r">→ ' + esc(b.to || '') + '</div>' +
           '<div class="c">' + esc(b.contents || '') + '</div></div>' +
