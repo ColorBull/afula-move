@@ -658,7 +658,7 @@ body.dragging-active .rank{cursor:grabbing}
 <div class="toast hidden" id="toast"></div>
 
 <script>
-window.BUILD_STAMP = "2026-09-02 | 22:55";
+window.BUILD_STAMP = "2026-09-05 | 21:12";
 </script>
 <script>
 /* ===== נתוני ברירת מחדל – רשימות מוכנות לעברית =====
@@ -1995,7 +1995,7 @@ var AfulaCalc = (function () {
       var ph = PHASES.filter(function (p) { return p.id === x.phase; })[0];
       return '<div class="task"><input type="checkbox" data-act="toggle" data-coll="tasks" data-id="' + x.id + '" data-field="done">' +
         '<div class="t"><div style="font-weight:500">' + esc(x.title) + '</div>' +
-        '<div class="small muted">' + esc(ph ? ph.label : '') + (x.due ? ' · ' + esc(fmtDate(x.due)) : '') + '</div></div></div>';
+        '<div class="small muted">' + esc(ph ? ph.label : '') + (x.due ? ' · ' + esc(fmtDateNum(x.due)) : '') + '</div></div></div>';
     }).join('');
     h += '</div>';
 
