@@ -476,12 +476,15 @@ label.f>.datef>input[type=date]{width:100%}
      השדות מתחת לכל רוחב הכרטיס. כשהשדות היו כלואים בתוך .t נשארו להם
      165px מתוך 375 – כל השאר הלך לכפתורים – והטקסט ב-select נחתך.
      display:contents מוציא את ילדי .t לרשת עצמה, בלי לשנות את ה-HTML. */
-  .task{
+  /* .lite = שורות הסקירה: כותרת + שורת משנה בלבד, בלי מספר, textarea או
+     שורת שדות. עליהן הרשת לא חלה - display:contents היה מוציא את שתי
+     השורות לעמודות auto, הכותרת לא הייתה נשברת והדף כולו גלש לרוחב. */
+  .task:not(.lite){
     display:grid;align-items:center;
     grid-template-columns:auto auto minmax(0,1fr) auto auto auto;
     column-gap:7px;row-gap:6px
   }
-  .task .t{display:contents}
+  .task:not(.lite) .t{display:contents}
   .task > .rank,
   .task > input[type=checkbox],
   .task > .icontoggle,
@@ -658,7 +661,7 @@ body.dragging-active .rank{cursor:grabbing}
 <div class="toast hidden" id="toast"></div>
 
 <script>
-window.BUILD_STAMP = "2026-09-05 | 21:12";
+window.BUILD_STAMP = "2026-09-05 | 21:26";
 </script>
 <script>
 /* ===== נתוני ברירת מחדל – רשימות מוכנות לעברית =====
@@ -1917,7 +1920,7 @@ var AfulaCalc = (function () {
       h += '<div class="card"><h2>' + g.icon + ' ' + esc(g.label) +
         ' <span class="sub">' + g.items.length + '</span></h2>' +
         g.items.slice(0, 12).map(function (it) {
-          return '<div class="task"><div class="t"><div style="font-weight:500">' + esc(it.t) + '</div>' +
+          return '<div class="task lite"><div class="t"><div style="font-weight:500">' + esc(it.t) + '</div>' +
             (it.s ? '<div class="small muted">' + esc(it.s) + '</div>' : '') + '</div></div>';
         }).join('') +
         (g.items.length > 12 ? '<div class="small muted" style="margin-top:6px">ועוד ' + (g.items.length - 12) + '…</div>' : '') +
@@ -1993,7 +1996,7 @@ var AfulaCalc = (function () {
     if (!next.length) h += '<div class="empty">הכול סומן כבוצע 🎉</div>';
     else h += next.slice(0, 6).map(function (x) {
       var ph = PHASES.filter(function (p) { return p.id === x.phase; })[0];
-      return '<div class="task"><input type="checkbox" data-act="toggle" data-coll="tasks" data-id="' + x.id + '" data-field="done">' +
+      return '<div class="task lite"><input type="checkbox" data-act="toggle" data-coll="tasks" data-id="' + x.id + '" data-field="done">' +
         '<div class="t"><div style="font-weight:500">' + esc(x.title) + '</div>' +
         '<div class="small muted">' + esc(ph ? ph.label : '') + (x.due ? ' · ' + esc(fmtDateNum(x.due)) : '') + '</div></div></div>';
     }).join('');
