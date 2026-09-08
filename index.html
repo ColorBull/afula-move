@@ -668,7 +668,7 @@ body.dragging-active .rank{cursor:grabbing}
 <div class="toast hidden" id="toast"></div>
 
 <script>
-window.BUILD_STAMP = "2026-09-05 | 22:20";
+window.BUILD_STAMP = "2026-09-08 | 20:46";
 </script>
 <script>
 /* ===== נתוני ברירת מחדל – רשימות מוכנות לעברית =====
@@ -1610,6 +1610,14 @@ var AfulaCalc = (function () {
     return !!query();
   }
 
+  // סינון פעיל = ערך סינון כלשהו או חיפוש. המיון לא משנה אילו פריטים מוצגים,
+  // ולכן אינו נספר כאן. כשיש סינון, קבוצה שלא נשאר בה כלום פשוט לא מוצגת.
+  function filtering(v) {
+    var f = filterBy[v] || {};
+    for (var k in f) if (f[k]) return true;
+    return !!query();
+  }
+
   function setFilter(v, field, val) {
     filterBy[v] = filterBy[v] || {};
     filterBy[v][field] = val;
@@ -2079,7 +2087,7 @@ var AfulaCalc = (function () {
       });
       shown += list.length;
       // בסינון פעיל אין טעם להציג שלבים ריקים
-      if (!list.length && (query() || stFilt || filt('tasks', 'due') || filt('tasks', 'cal'))) return;
+      if (!list.length && filtering('tasks')) return;
       var done = all.filter(function (t) { return t.done; }).length;
       h += '<div class="card phase"><div class="phase-head"><h3>' + esc(p.label) + '</h3>' +
         '<span class="cnt">' + done + '/' + all.length + ' · ' + esc(p.hint) + '</span>' +
@@ -2231,7 +2239,8 @@ var AfulaCalc = (function () {
       });
       list = sortList('shopping', list);
       shopShown += list.length;
-      if (!list.length && query()) return;
+      // בסינון פעיל אין טעם בכרטיס קטגוריה ריק – ההודעה הכללית בתחתית המסך אומרת את זה פעם אחת
+      if (!list.length) return;
       var ast = areaStats(g.key);
       var got = ast.bought;
       h += '<div class="card phase"><div class="phase-head"><h3>' + esc(g.label) +
@@ -2243,7 +2252,6 @@ var AfulaCalc = (function () {
           'הפריטים האלה שייכים לאזור שאינו ברשימת הקטגוריות. הם נספרים בכל הסיכומים, ' +
           'ואפשר להעביר אותם לקטגוריה קיימת מהתפריט שבשורה.</div>';
       }
-      if (!list.length) h += '<div class="empty">אין פריטים מתאימים לסינון</div>';
       h += '<div data-drag-group data-drag-coll="shopping">';
       list.forEach(function (s, i) {
         // מתנה מסומנת בתיבת הסימון בלבד. אין תגית נוספת, ואין תגית ל"מחיר לא נרשם" –
@@ -2370,7 +2378,7 @@ var AfulaCalc = (function () {
 
     sectionGroups().forEach(function (sec) {
       var rows = sortList('budget', bRows.filter(function (r) { return rowSectionKey(r) === sec.key; }));
-      if (!rows.length && (query() || filt('budget', 'paid') || filt('budget', 'over'))) return;
+      if (!rows.length && filtering('budget')) return;
       if (!rows.length && sec.unknown) return;
       var st = sectionStats(sec.key);
       // היחידה כתובה בכותרת: בקטגוריה חוזרת המספרים הם ₪ לחודש, ולא סכום חד-פעמי
@@ -2415,6 +2423,10 @@ var AfulaCalc = (function () {
           '<button class="btn sm danger" data-act="del-budget-section" data-id="' + sec.key + '">מחיקת הקטגוריה</button>' +
           '</div>') + '</div>';
     });
+
+    if (!bRows.length && filtering('budget')) {
+      h += '<div class="card"><div class="empty">לא נמצאו סעיפים מתאימים</div></div>';
+    }
 
     // --- ניהול קטגוריות ---
     h += '<div class="card"><h2>קטגוריות התקציב</h2>' +
