@@ -668,7 +668,7 @@ body.dragging-active .rank{cursor:grabbing}
 <div class="toast hidden" id="toast"></div>
 
 <script>
-window.BUILD_STAMP = "2026-09-08 | 20:46";
+window.BUILD_STAMP = "2026-09-08 | 21:17";
 </script>
 <script>
 /* ===== נתוני ברירת מחדל – רשימות מוכנות לעברית =====
@@ -1021,10 +1021,11 @@ var AfulaCalc = (function () {
     return st;
   }
 
-  function areaStats(state, key) {
+  // סיכום כספי של אוסף פריטים כלשהו – קטגוריה שלמה, או מה שנשאר
+  // אחרי סינון. מתנה אינה נכנסת לאומדן ולא להוצאה בפועל, כמו בכל חישוב אחר.
+  function listStats(list) {
     var st = { total: 0, bought: 0, est: 0, spend: 0, gifts: 0, unknownCost: 0 };
-    arr(state && state.shopping).forEach(function (s) {
-      if (itemAreaKey(state, s) !== key) return;
+    arr(list).forEach(function (s) {
       st.total++;
       if (!isGift(s)) st.est += num(s.est);
       if (isBought(s)) {
@@ -1035,6 +1036,12 @@ var AfulaCalc = (function () {
       }
     });
     return st;
+  }
+
+  function areaStats(state, key) {
+    return listStats(arr(state && state.shopping).filter(function (s) {
+      return itemAreaKey(state, s) === key;
+    }));
   }
 
   // הקבוצות שמסך הקניות מציג: כל האזורים המוכרים, ואחריהם "ללא אזור" אם יש.
@@ -1192,6 +1199,7 @@ var AfulaCalc = (function () {
     NO_AREA: NO_AREA, NO_SECTION: NO_SECTION, NO_PHASE: NO_PHASE,
     isGift: isGift, isBought: isBought, isCostUnknown: isCostUnknown, itemSpend: itemSpend,
     itemAreaKey: itemAreaKey, areaGroups: areaGroups, areaStats: areaStats, shopStats: shopStats,
+    listStats: listStats,
     sectionById: sectionById, isRecurringRow: isRecurringRow, rowSectionKey: rowSectionKey,
     sectionStats: sectionStats, sectionGroups: sectionGroups, budgetStats: budgetStats,
     dataWarnings: dataWarnings, estCoverageText: estCoverageText,
@@ -1630,6 +1638,116 @@ var AfulaCalc = (function () {
   function sortOf(v) { return sortBy[v] || 'manual'; }
   function isManual(v) { return sortOf(v) === 'manual'; }
   function filt(v, key) { return (filterBy[v] || {})[key] || ''; }
+
+  // פריט חדש כשסינון פעיל: רשומה חדשה נולדת ריקה, ולכן כמעט תמיד אינה
+  // עונה על הסינון שפעיל על המסך – היא נשמרת, אבל לא נראית, ונראה
+  // כאילו הכפתור לא עשה כלום. לכן ערכי הסינון נכתבים לתוך הרשומה החדשה.
+  // סינון שאי אפשר לייצג בערך ("עם קישור", "באיחור", "בחריגה מהמתוכנן") מנוקה,
+  // וכך גם החיפוש – טקסט חופשי לעולם לא יתאים לשורה ריקה.
+  var FILT_CLEARED = 'נוסף · חלק מהסינונים נוקו כדי שיוצג';
+
+  function fEq(field) {
+    return {
+      set: function (o, v) { o[field] = v; },
+      has: function (o, v) { return String(o[field] || '') === v; }
+    };
+  }
+  var NEW_FROM_FILTER = {
+    tasks: {
+      phase: {
+        set: function (o, v) { o.phase = v === C.NO_PHASE ? '' : v; },
+        has: function (o, v) {
+          return v === C.NO_PHASE
+            ? PHASES.every(function (p) { return p.id !== o.phase; })
+            : o.phase === v;
+        }
+      },
+      state: {
+        set: function (o, v) { o.done = v === 'done'; },
+        has: function (o, v) { return v === 'done' ? !!o.done : !o.done; }
+      },
+      due: {
+        set: function (o, v) { return v === 'none'; },
+        has: function (o, v) { return v === 'none' && !o.due; }
+      },
+      cal: {
+        set: function (o, v) { return v === '0'; },
+        has: function (o, v) { return v === '0' && !o.calendarEventId; }
+      }
+    },
+    boxes: {
+      status: fEq('status'),
+      to: fEq('to'),
+      fragile: {
+        set: function (o) { o.fragile = true; },
+        has: function (o) { return !!o.fragile; }
+      }
+    },
+    shopping: {
+      prio: fEq('prio'),
+      area: {
+        set: function (o, v) { o.area = v === C.NO_AREA ? '' : v; },
+        has: function (o, v) { return itemAreaKey(o) === v; }
+      },
+      bought: {
+        // הדגלים נשמרים עקביים גם כאן: מתנה היא גם קנויה
+        set: function (o, v) {
+          if (v === '0') { o.bought = false; o.gift = false; return; }
+          o.bought = true;
+          o.gift = v === 'gift';
+          if (v === 'nocost') o.cost = 0;
+        },
+        has: function (o, v) {
+          if (v === '0') return !o.bought;
+          if (v === '1') return !!o.bought;
+          if (v === 'gift') return C.isGift(o);
+          return C.isCostUnknown(o);
+        }
+      },
+      store: fEq('store')
+    },
+    docs: {
+      type: fEq('type'),
+      link: {
+        set: function (o, v) { return v === '0'; },
+        has: function (o, v) { return v === '0' ? !o.link : !!o.link; }
+      }
+    },
+    budget: {
+      paid: {
+        set: function (o, v) { o.paid = v === '1'; },
+        has: function (o, v) { return v === '1' ? !!o.paid : !o.paid; }
+      },
+      over: {
+        set: function () { return false; },
+        has: function (o) { return num(o.actual) > num(o.planned); }
+      }
+    },
+    services: { status: fEq('status'), provider: fEq('provider') },
+    contacts: { role: fEq('role') }
+  };
+
+  // preset = שדות שהטופס כבר קבע, ואסור לדרוס אותם; אם מה שנבחר
+  // בטופס לא עונה על הסינון, מנקים דווקא את הסינון. מחזיר true אם נוקה
+  // משהו, כדי שההודעה למשתמש תסביר למה המסך השתנה.
+  function applyFilterDefaults(v, obj, preset) {
+    var map = NEW_FROM_FILTER[v] || {}, f = filterBy[v] || {}, dropped = false;
+    Object.keys(f).forEach(function (k) {
+      if (!f[k]) return;
+      var m = map[k];
+      if (m) {
+        var ok = (preset || []).indexOf(k) < 0
+          ? m.set(obj, f[k]) !== false
+          : m.has(obj, f[k]);
+        if (ok) return;
+      }
+      f[k] = '';
+      dropped = true;
+    });
+    var sq = $('#globalSearch');
+    if (sq && sq.value.trim()) { sq.value = ''; dropped = true; }
+    return dropped;
+  }
 
   var cmpText = function (a, b) { return String(a || '').localeCompare(String(b || ''), 'he'); };
   var num = function (x) { return Number(x) || 0; };
@@ -2180,6 +2298,21 @@ var AfulaCalc = (function () {
     return searchNote(list.length, b.total, 'ארגזים') + h;
   }
 
+  // התנאי של מסך הקניות יושב בפונקציה אחת, כדי שסיכום הסינון יתעדכן
+  // חי בזמן הקלדה (refreshTotals) ולא רק ברנדור הבא.
+  function shopFilterPass(s) {
+    var af = filt('shopping', 'area');
+    if (af && itemAreaKey(s) !== af) return false;
+    if (filt('shopping', 'prio') && s.prio !== filt('shopping', 'prio')) return false;
+    var bf = filt('shopping', 'bought');
+    if (bf === '1' && !s.bought) return false;
+    if (bf === '0' && s.bought) return false;
+    if (bf === 'gift' && !C.isGift(s)) return false;
+    if (bf === 'nocost' && !C.isCostUnknown(s)) return false;
+    if (filt('shopping', 'store') && (s.store || '').trim() !== filt('shopping', 'store')) return false;
+    return hit(s.name, s.store, s.area);
+  }
+
   function viewShopping() {
     var sh = shopStats();
     var warn = C.dataWarnings(state);
@@ -2227,16 +2360,7 @@ var AfulaCalc = (function () {
       var all = state.shopping.filter(function (s) { return itemAreaKey(s) === g.key; });
       if (!all.length) return;
       if (filt('shopping', 'area') && g.key !== filt('shopping', 'area')) return;
-      var list = all.filter(function (s) {
-        if (filt('shopping', 'prio') && s.prio !== filt('shopping', 'prio')) return false;
-        var bf = filt('shopping', 'bought');
-        if (bf === '1' && !s.bought) return false;
-        if (bf === '0' && s.bought) return false;
-        if (bf === 'gift' && !C.isGift(s)) return false;
-        if (bf === 'nocost' && !C.isCostUnknown(s)) return false;
-        if (filt('shopping', 'store') && (s.store || '').trim() !== filt('shopping', 'store')) return false;
-        return hit(s.name, s.store, s.area);
-      });
+      var list = all.filter(shopFilterPass);
       list = sortList('shopping', list);
       shopShown += list.length;
       // בסינון פעיל אין טעם בכרטיס קטגוריה ריק – ההודעה הכללית בתחתית המסך אומרת את זה פעם אחת
@@ -2295,6 +2419,30 @@ var AfulaCalc = (function () {
         '</div>';
     });
     if (!shopShown) h += '<div class="card"><div class="empty">לא נמצאו פריטים מתאימים</div></div>';
+
+    // שורה תחתונה למה שמוצג עכשיו: כשמסננים לפי חנות או עדיפות,
+    // השאלה המעשית היא כמה זה עולה שם – ולא מה סך הכול. הכרטיס
+    // מופיע רק כשיש סינון פעיל, כדי שלא ישכפל את הכרטיס שבראש המסך.
+    if (filtering('shopping') && shopShown) {
+      var fst = C.listStats(state.shopping.filter(shopFilterPass));
+      h += '<div class="card"><h2>סיכום לפי הסינון <span class="sub">' +
+        fst.total + ' מתוך ' + sh.total + ' פריטים</span></h2>' +
+        '<div class="grid g2" style="margin-top:10px">' +
+        '<div class="stat"><div class="k">משוער</div>' +
+        '<div class="v" data-total="sfil:est">' + nis(fst.est) + '</div></div>' +
+        '<div class="stat"><div class="k">שולם בפועל</div>' +
+        '<div class="v" data-total="sfil:spend">' + nis(fst.spend) + '</div></div>' +
+        '</div>' +
+        (fst.gifts || fst.unknownCost
+          ? '<div class="small muted" style="margin-top:8px">' +
+            (fst.gifts ? (fst.gifts === 1 ? 'מתנה אחת (0 ₪)' : fst.gifts + ' מתנות (0 ₪)') : '') +
+            (fst.gifts && fst.unknownCost ? ' · ' : '') +
+            (fst.unknownCost ? (fst.unknownCost === 1 ? 'פריט אחד ללא מחיר רשום'
+                                                      : fst.unknownCost + ' פריטים ללא מחיר רשום') : '') +
+            '</div>'
+          : '') +
+        '</div>';
+    }
 
     // --- ניהול קטגוריות הקניות ---
     h += '<div class="card"><h2>קטגוריות</h2><div class="row">' +
@@ -3150,25 +3298,33 @@ var AfulaCalc = (function () {
     else if (act === 'add-task') {
       var ti = $('#ntTitle');
       if (!ti.value.trim()) { ti.focus(); return; }
-      state.tasks.push({ id: uid(), phase: $('#ntPhase').value, title: ti.value.trim(), done: false, due: '' });
-      save(); render(); toast('משימה נוספה');
+      var nt = { id: uid(), phase: $('#ntPhase').value, title: ti.value.trim(), done: false, due: '' };
+      var tDrop = applyFilterDefaults('tasks', nt, ['phase']);
+      state.tasks.push(nt);
+      save(); render(); toast(tDrop ? FILT_CLEARED : 'משימה נוספה');
     }
     else if (act === 'add-box') {
       // נדחף לסוף ולא לראש: כך המספרים הקיימים – והתוויות שכבר הודבקו –
       // לא זזים, והארגז החדש מקבל את המספר הפנוי הבא.
-      state.boxes.push({
+      var nb = {
         id: uid(), num: state.boxes.length + 1, contents: $('#nbContents').value.trim(),
         from: $('#nbFrom').value, to: $('#nbTo').value, status: 'todo', fragile: false
-      });
+      };
+      var bDrop = applyFilterDefaults('boxes', nb, ['to']);
+      state.boxes.push(nb);
       renumberBoxes();
-      save(); render(); toast('ארגז מס\' ' + state.boxes.length + ' נוסף');
+      save(); render();
+      toast(bDrop ? FILT_CLEARED : 'ארגז מס\' ' + state.boxes.length + ' נוסף');
     }
     else if (act === 'add-budget') {
-      state.budget.push({
+      var nbr = {
         id: uid(), section: el.dataset.section || state.budgetSections[0].id,
         cat: '', planned: 0, actual: 0, paid: false, note: ''
-      });
+      };
+      var buDrop = applyFilterDefaults('budget', nbr);
+      state.budget.push(nbr);
       save(); render();
+      if (buDrop) toast(FILT_CLEARED);
     }
     else if (act === 'add-budget-section') {
       var bsn = $('#nbsName');
@@ -3216,26 +3372,34 @@ var AfulaCalc = (function () {
     else if (act === 'add-shop') {
       var sn = $('#nsName');
       if (!sn.value.trim()) { sn.focus(); return; }
-      state.shopping.push({
+      var ns = {
         id: uid(), area: $('#nsArea').value, name: sn.value.trim(),
         prio: $('#nsPrio').value, est: 0, cost: 0, store: '', link: '', bought: false, gift: false
-      });
-      save(); render(); toast('נוסף לרשימת הקניות');
+      };
+      var sDrop = applyFilterDefaults('shopping', ns, ['area', 'prio']);
+      state.shopping.push(ns);
+      save(); render(); toast(sDrop ? FILT_CLEARED : 'נוסף לרשימת הקניות');
     }
     else if (act === 'add-shop-in') {
       var nid = uid();
-      state.shopping.push({
+      var nsi = {
         id: nid, area: el.dataset.area || state.shopAreas[0], name: '',
         prio: 'soon', est: 0, cost: 0, store: '', link: '', bought: false, gift: false
-      });
+      };
+      var siDrop = applyFilterDefaults('shopping', nsi, ['area']);
+      state.shopping.push(nsi);
       save(); render();
+      if (siDrop) toast(FILT_CLEARED);
       // השורה נולדת ריקה בדיוק מעל הכפתור שנלחץ, והפוקוס עובר אליה
       var nf = document.querySelector('[data-coll="shopping"][data-id="' + nid + '"][data-field="name"]');
       if (nf) nf.focus();
     }
     else if (act === 'add-doc') {
-      state.docs.push({ id: uid(), type: 'other', title: 'רשומה חדשה', date: '', value: '', link: '', notes: '' });
+      var nd = { id: uid(), type: 'other', title: 'רשומה חדשה', date: '', value: '', link: '', notes: '' };
+      var dDrop = applyFilterDefaults('docs', nd);
+      state.docs.push(nd);
       save(); render();
+      if (dDrop) toast(FILT_CLEARED);
     }
     else if (act === 'link') {
       // לחיצה ארוכה כבר פתחה את העריכה – הקליק שאחריה לא אמור גם לפתוח את הקישור
@@ -3247,14 +3411,19 @@ var AfulaCalc = (function () {
       render(); toast('הסינונים נוקו');
     }
     else if (act === 'add-service') {
-      state.services.push({ id: uid(), name: 'שירות חדש', provider: '', phone: '', account: '', status: 'todo', notes: '' });
+      var nsv = { id: uid(), name: 'שירות חדש', provider: '', phone: '', account: '', status: 'todo', notes: '' };
+      var vDrop = applyFilterDefaults('services', nsv);
+      state.services.push(nsv);
       save(); render();
+      if (vDrop) toast(FILT_CLEARED);
     }
     else if (act === 'add-contact') {
       var n = $('#ncName').value.trim(), r = $('#ncRole').value.trim(), p = $('#ncPhone').value.trim();
       if (!n && !p) { $('#ncName').focus(); return; }
-      state.contacts.push({ id: uid(), name: n, role: r, phone: p, notes: '' });
-      save(); render(); toast('נוסף');
+      var nc = { id: uid(), name: n, role: r, phone: p, notes: '' };
+      var cDrop = applyFilterDefaults('contacts', nc, ['role']);
+      state.contacts.push(nc);
+      save(); render(); toast(cDrop ? FILT_CLEARED : 'נוסף');
     }
     else if (act === 'gcal-sync') gcalSync();
     else if (act === 'gcal-pull') gcalPull();
@@ -3423,7 +3592,7 @@ var AfulaCalc = (function () {
   function refreshTotals() {
     var els = document.querySelectorAll('[data-total]');
     if (!els.length) return;
-    var bg = null, sh = null;
+    var bg = null, sh = null, sfil = null;
     [].forEach.call(els, function (n) {
       var p = String(n.dataset.total).split(':');
       var kind = p[0], field = p[1], key = p.slice(2).join(':');
@@ -3439,6 +3608,7 @@ var AfulaCalc = (function () {
       else if (kind === 'sh') src = (sh = sh || shopStats());
       else if (kind === 'bsec') src = sectionStats(key);
       else if (kind === 'ssec') src = areaStats(key);
+      else if (kind === 'sfil') src = (sfil = sfil || C.listStats(state.shopping.filter(shopFilterPass)));
       if (src && src[field] != null) n.textContent = nis(src[field]);
     });
   }
