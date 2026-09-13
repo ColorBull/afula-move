@@ -8,6 +8,7 @@
 <meta name="description" content="תכנון וניהול מעבר דירה: משימות, קניות, ארגזים, תקציב ושירותים">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="ניהול מעבר דירה">
+<link rel="manifest" href="./manifest.json">
 <link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj4KICA8cmVjdCB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgcng9IjExMiIgZmlsbD0iIzBmNzY2ZSIvPgogIDxwYXRoIGQ9Ik0yNTYgOTYgMTE2IDIxMHYyMDZoOTZWMzAwaDg4djExNmg5NlYyMTB6IiBmaWxsPSIjY2NmYmYxIi8+CiAgPHJlY3QgeD0iMTk2IiB5PSIzMzAiIHdpZHRoPSIxMjAiIGhlaWdodD0iODYiIHJ4PSIxMCIgZmlsbD0iIzBmNzY2ZSIvPgogIDxyZWN0IHg9IjE5NiIgeT0iMzMwIiB3aWR0aD0iMTIwIiBoZWlnaHQ9IjE4IiByeD0iOCIgZmlsbD0iIzVlZWFkNCIvPgogIDxyZWN0IHg9IjI0NiIgeT0iMzMwIiB3aWR0aD0iMjAiIGhlaWdodD0iODYiIGZpbGw9IiM1ZWVhZDQiLz4KPC9zdmc+">
 <link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj4KICA8cmVjdCB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgcng9IjExMiIgZmlsbD0iIzBmNzY2ZSIvPgogIDxwYXRoIGQ9Ik0yNTYgOTYgMTE2IDIxMHYyMDZoOTZWMzAwaDg4djExNmg5NlYyMTB6IiBmaWxsPSIjY2NmYmYxIi8+CiAgPHJlY3QgeD0iMTk2IiB5PSIzMzAiIHdpZHRoPSIxMjAiIGhlaWdodD0iODYiIHJ4PSIxMCIgZmlsbD0iIzBmNzY2ZSIvPgogIDxyZWN0IHg9IjE5NiIgeT0iMzMwIiB3aWR0aD0iMTIwIiBoZWlnaHQ9IjE4IiByeD0iOCIgZmlsbD0iIzVlZWFkNCIvPgogIDxyZWN0IHg9IjI0NiIgeT0iMzMwIiB3aWR0aD0iMjAiIGhlaWdodD0iODYiIGZpbGw9IiM1ZWVhZDQiLz4KPC9zdmc+">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -449,6 +450,8 @@ label.f>.datef>input[type=date]{width:100%}
 .shopmeta.buy{grid-template-columns:1.15fr .9fr .9fr 1fr 1.15fr}
 /* תקציב: מתוכנן · בפועל · קטגוריה · ספק */
 .shopmeta.bud{grid-template-columns:.85fr .85fr 1.1fr 1.5fr}
+/* מצב סופר: עדיפות · חנות בלבד */
+.shopmeta.super{grid-template-columns:1fr 1fr}
 .shopmeta .mini:disabled{opacity:.5;cursor:not-allowed}
 /* כפתורי-אייקון של שורה (🎁 מתנה, 🔗 קישור): אפור וכבוי, או צבעוני ודלוק.
    בלי טקסט ובלי תיבת סימון – המצב נקרא מהאייקון עצמו. */
@@ -498,6 +501,7 @@ label.f>.datef>input[type=date]{width:100%}
      ש"ליום הראשון" או "אמבטיה ושירותים" ייכנסו בשלמותם. */
   .shopmeta.buy,
   .shopmeta.bud{grid-template-columns:repeat(auto-fit,minmax(8.5em,1fr));gap:7px 8px}
+  .shopmeta.super{grid-template-columns:repeat(auto-fit,minmax(8.5em,1fr));gap:7px 8px}
   .shopmeta.buy > :last-child{grid-column:1/-1}
   .shopmeta.bud > :last-child{grid-column:1/-1}
   .shopmeta .mini{padding:6px 8px;font-size:12px}
@@ -600,6 +604,9 @@ tfoot td{font-weight:700;border-bottom:0}
   /* אותו רוחב כמו שדה סינון, כדי שהכפתור ימלא את החצי הריק בשורה
      האחרונה במקום לתפוס שורה שלמה לעצמו */
   .clearfilt{flex:1 1 46%;font-size:12px;padding:6px 8px}
+  /* בקניות יש גם כפתור מצב סופר: שדה הסינון האחרון מקבל שורה משלו,
+     ושני הכפתורים יושבים יחד בשורה אחת ובאותו גובה */
+  .toolbar:has(.supermode) label.f:last-of-type{flex-basis:100%}
 }
 
 /* ---- שורת לוח השנה ---- */
@@ -668,7 +675,7 @@ body.dragging-active .rank{cursor:grabbing}
 <div class="toast hidden" id="toast"></div>
 
 <script>
-window.BUILD_STAMP = "2026-09-08 | 21:17";
+window.BUILD_STAMP = "2026-09-13 | 16:30";
 </script>
 <script>
 /* ===== נתוני ברירת מחדל – רשימות מוכנות לעברית =====
@@ -1589,11 +1596,17 @@ var AfulaCalc = (function () {
   };
   var sortBy = {};   // view -> sort key
   var filterBy = {}; // view -> {field: value}
+  // מצב סופר במסך הקניות: תצוגה מינימלית לעמידה מול המדף. נשמר במכשיר
+  // בלבד, כמו המיון והסינונים. superPrev = ערכי החנות והמצב שהיו לפני
+  // ההפעלה, כדי שהיציאה תחזיר את המסך למה שהיה.
+  var superMode = false, superPrev = null;
+  var SUPER_STORE = 'סופר';
 
   // רענון של הדף לא אמור לאבד את מקומו של המשתמש: המסך הפעיל, המיון
   // והסינונים נשמרים במכשיר ונטענים בחזרה באתחול.
   function saveUI() {
-    safeLS.set(LS_UI, JSON.stringify({ view: view, sortBy: sortBy, filterBy: filterBy }));
+    safeLS.set(LS_UI, JSON.stringify({ view: view, sortBy: sortBy, filterBy: filterBy,
+      superMode: superMode, superPrev: superPrev }));
   }
   function loadUI() {
     try {
@@ -1602,12 +1615,15 @@ var AfulaCalc = (function () {
       if (u.view && VIEWS[u.view]) view = u.view;
       if (u.sortBy && typeof u.sortBy === 'object') sortBy = u.sortBy;
       if (u.filterBy && typeof u.filterBy === 'object') filterBy = u.filterBy;
+      superMode = !!u.superMode;
+      superPrev = u.superPrev && typeof u.superPrev === 'object' ? u.superPrev : null;
     } catch (e) {}
   }
   // חזרה למצב ההתחלתי של מסך אחד: בלי מיון, בלי סינונים ובלי חיפוש פעיל
   function clearFilters(v) {
     delete sortBy[v];
     delete filterBy[v];
+    if (v === 'shopping') { superMode = false; superPrev = null; }
     var s = $('#globalSearch');
     if (s && s.value) s.value = '';
   }
@@ -1779,7 +1795,8 @@ var AfulaCalc = (function () {
   }
 
   // סרגל מיון/סינון אחיד. selects = [[id, label, currentValue, [[val,label]…]]…]
-  function toolbar(v, selects) {
+  // extra = כפתור נוסף שיושב בסוף השורה, ליד "נקה סינונים"
+  function toolbar(v, selects, extra) {
     var h = '<div class="card toolbar"><div class="row">' +
       '<label class="f">מיון<select data-sortfor="' + v + '">' +
       SORTS[v].map(function (o) {
@@ -1793,6 +1810,7 @@ var AfulaCalc = (function () {
     });
     h += '<button type="button" class="btn sm clearfilt' + (hasFilters(v) ? ' on' : '') +
       '" data-act="clear-filters" data-view="' + v + '">נקה סינונים 🧹</button>';
+    h += extra || '';
     h += '</div>' +
       (isManual(v) ? '' : '<div class="small muted" style="margin-top:8px">במיון הזה לא ניתן לגרור. חוזרים ל"סדר ידני" כדי לשנות סדר.</div>') +
       '</div>';
@@ -2316,7 +2334,10 @@ var AfulaCalc = (function () {
   function viewShopping() {
     var sh = shopStats();
     var warn = C.dataWarnings(state);
-    var h = '<div class="card"><h2>קניות לדירה <span class="sub">' + sh.bought + '/' + sh.total + ' נקנו</span></h2>' +
+    // מצב סופר: בלי כרטיס הכסף, בלי סיכומי סכומים, בלי ניהול קטגוריות,
+    // ובשורה רק עדיפות וחנות – מה שצריך מול המדף
+    var sup = superMode;
+    var h = sup ? '' : '<div class="card"><h2>קניות לדירה <span class="sub">' + sh.bought + '/' + sh.total + ' נקנו</span></h2>' +
       '<div class="bar"><i style="width:' + pct(sh.bought, sh.total) + '%"></i></div>' +
       '<div class="grid g2" style="margin-top:10px">' +
       '<div class="stat"><div class="k">סה"כ משוער</div><div class="v" data-total="sh:est">' + nis(sh.est) + '</div>' +
@@ -2330,8 +2351,10 @@ var AfulaCalc = (function () {
                                               : sh.unknownCost + ' פריטים ללא מחיר רשום') : '') +
       '</div></div>' +
       '</div>';
-    if (warn.length) h += '<div class="money-note note" style="margin-top:8px">⚠️ ' + warn.map(esc).join(' ') + '</div>';
-    h += '</div>';
+    if (!sup) {
+      if (warn.length) h += '<div class="money-note note" style="margin-top:8px">⚠️ ' + warn.map(esc).join(' ') + '</div>';
+      h += '</div>';
+    }
 
     h += '<div class="card"><h2>פריט חדש</h2><div class="row">' +
       '<input id="nsName" placeholder="מה צריך לקנות?" style="flex:2 1 180px">' +
@@ -2342,6 +2365,11 @@ var AfulaCalc = (function () {
     // הסינונים נבנים מהקבוצות בפועל ומהערכים שקיימים בנתונים, כדי שגם ערך
     // שאינו ברשימה המוכרת יהיה ניתן לסינון ולא ייעלם מהמסך
     var groups = areaGroups();
+    var stores = uniq(state.shopping.map(function (s) { return (s.store || '').trim(); }));
+    // ערך הסינון הנוכחי (למשל "סופר" לפני שיש פריט כזה) חייב להופיע ברשימה,
+    // אחרת ה-select מציג "כל החנויות" בזמן שהסינון בפועל פעיל
+    var sf = filt('shopping', 'store');
+    if (sf && stores.indexOf(sf) < 0) stores.push(sf);
     h += toolbar('shopping', [
       ['prio', 'עדיפות', filt('shopping', 'prio'),
         [['', 'כל העדיפויות']].concat(enumFilterOpts(SHOP_PRIO, state.shopping, 'prio'))],
@@ -2350,9 +2378,10 @@ var AfulaCalc = (function () {
       ['bought', 'מצב', filt('shopping', 'bought'),
         [['', 'הכל'], ['0', 'שטרם נקנו'], ['1', 'שכבר נקנו'], ['gift', 'מתנות'], ['nocost', 'נקנו ללא מחיר']]],
       ['store', 'חנות', filt('shopping', 'store'),
-        [['', 'כל החנויות']].concat(uniq(state.shopping.map(function (s) { return (s.store || '').trim(); }))
-          .map(function (v) { return [v, v]; }))]
-    ]);
+        [['', 'כל החנויות']].concat(stores.map(function (v) { return [v, v]; }))]
+    ], '<button type="button" class="btn sm clearfilt supermode' + (sup ? ' on' : '') +
+      '" data-act="super-mode" aria-pressed="' + sup + '">' +
+      (sup ? 'יציאה ממצב סופר 🛒' : 'מצב סופר 🛒') + '</button>');
 
     var shopShown = 0;
     var sManual = isManual('shopping');
@@ -2386,32 +2415,32 @@ var AfulaCalc = (function () {
           rank(i, sManual) +
           '<input type="checkbox"' + (got ? ' checked' : '') + ' data-act="toggle" data-coll="shopping" data-id="' + s.id + '" data-field="bought">' +
           '<div class="t">' + titleBox('shopping', s.id, 'name', s.name) +
-          '<div class="shopmeta buy">' +
+          '<div class="shopmeta ' + (sup ? 'super' : 'buy') + '">' +
           '<select ' + bind('shopping', s.id, 'prio') + ' class="mini' + (s.prio === 'must' && !s.bought ? ' urgent' : '') + '">' +
           optsWith(SHOP_PRIO, s.prio, 'id', 'label') + '</select>' +
-          '<input type="number" inputmode="numeric" min="0" class="mini" placeholder="' +
+          (sup ? '' : '<input type="number" inputmode="numeric" min="0" class="mini" placeholder="' +
           (gift ? '—' : 'משוער ₪') + '" value="' + (gift ? '' : (s.est || '')) + '"' +
           (gift ? ' disabled' : '') + ' ' + bind('shopping', s.id, 'est') + '>' +
           // בפריט שהתקבל במתנה אין מה למלא: השדה נשאר במקומו כדי לשמור על היישור, אבל נעול
           '<input type="number" inputmode="numeric" min="0" class="mini" placeholder="' +
           (gift ? '—' : 'שולם ₪') + '" value="' + (gift ? '' : (s.cost || '')) + '"' +
-          (gift ? ' disabled' : '') + ' ' + bind('shopping', s.id, 'cost') + '>' +
+          (gift ? ' disabled' : '') + ' ' + bind('shopping', s.id, 'cost') + '>') +
           '<input class="mini" placeholder="חנות" value="' + esc(s.store || '') + '" ' + bind('shopping', s.id, 'store') + '>' +
-          '<select class="mini" title="העברה לקטגוריה אחרת" ' + bind('shopping', s.id, 'area') + '>' +
-          optsWith(state.shopAreas, s.area) + '</select>' +
+          (sup ? '' : '<select class="mini" title="העברה לקטגוריה אחרת" ' + bind('shopping', s.id, 'area') + '>' +
+          optsWith(state.shopAreas, s.area) + '</select>') +
           '</div></div>' +
           // 🎁 ו-🔗 יושבים בשורת הכותרת ליד ה-✕, בגובה אחיד: אלה מצבים של הפריט
           // כולו ולא שדות בשורת הפרטים, ובמילים אין צורך כשהאייקון דולק או כבוי.
-          flagBtn('shopping', s, 'gift', '🎁',
+          (sup ? '' : flagBtn('shopping', s, 'gift', '🎁',
             'התקבל במתנה – נספר כנקנה ותורם 0 להוצאה', 'סימון כמתנה') +
-          linkBtn('shopping', s) +
+          linkBtn('shopping', s)) +
           '<button class="x" data-act="del" data-coll="shopping" data-id="' + s.id + '" title="מחיקה">✕</button></div>';
       });
       // אותה שורת סיכום כמו בתקציב: כמה תוכנן לקטגוריה וכמה יצא בפועל
-      h += '</div><div class="sectotal"><span>סה"כ</span><span class="spacer"></span>' +
+      h += '</div>' + (sup ? '' : '<div class="sectotal"><span>סה"כ</span><span class="spacer"></span>' +
         '<span class="small muted">משוער</span><b data-total="ssec:est:' + esc(g.key) + '">' + nis(ast.est) + '</b>' +
         '<span class="small muted">בפועל</span><b data-total="ssec:spend:' + esc(g.key) + '">' + nis(ast.spend) + '</b>' +
-        '</div>' +
+        '</div>') +
         // הוספה מתוך הקטגוריה עצמה, כמו בתקציב – בלי לגלול לראש המסך.
         // קבוצת "ללא אזור" אינה קטגוריה אמיתית ולכן אין לה כפתור.
         (g.unknown ? '' : '<div class="row" style="margin-top:10px">' +
@@ -2423,7 +2452,7 @@ var AfulaCalc = (function () {
     // שורה תחתונה למה שמוצג עכשיו: כשמסננים לפי חנות או עדיפות,
     // השאלה המעשית היא כמה זה עולה שם – ולא מה סך הכול. הכרטיס
     // מופיע רק כשיש סינון פעיל, כדי שלא ישכפל את הכרטיס שבראש המסך.
-    if (filtering('shopping') && shopShown) {
+    if (!sup && filtering('shopping') && shopShown) {
       var fst = C.listStats(state.shopping.filter(shopFilterPass));
       h += '<div class="card"><h2>סיכום לפי הסינון <span class="sub">' +
         fst.total + ' מתוך ' + sh.total + ' פריטים</span></h2>' +
@@ -2445,7 +2474,7 @@ var AfulaCalc = (function () {
     }
 
     // --- ניהול קטגוריות הקניות ---
-    h += '<div class="card"><h2>קטגוריות</h2><div class="row">' +
+    if (!sup) h += '<div class="card"><h2>קטגוריות</h2><div class="row">' +
       '<input id="nsaName" placeholder="קטגוריה חדשה" style="flex:2 1 180px">' +
       '<button class="btn primary" data-act="add-shop-area">הוספה</button></div>' +
       '<div class="seclist">' + groups.map(function (g) {
@@ -3405,6 +3434,21 @@ var AfulaCalc = (function () {
       // לחיצה ארוכה כבר פתחה את העריכה – הקליק שאחריה לא אמור גם לפתוח את הקישור
       if (linkPress.fired) { linkPress.fired = false; return; }
       openLink(el.dataset.coll, el.dataset.id);
+    }
+    else if (act === 'super-mode') {
+      // כניסה: חנות = סופר, מצב = שטרם נקנו. יציאה: הערכים שהיו לפני כן חוזרים.
+      if (!superMode) {
+        superPrev = { store: filt('shopping', 'store'), bought: filt('shopping', 'bought') };
+        setFilter('shopping', 'store', SUPER_STORE);
+        setFilter('shopping', 'bought', '0');
+        superMode = true;
+      } else {
+        var prev = superPrev || {};
+        setFilter('shopping', 'store', prev.store || '');
+        setFilter('shopping', 'bought', prev.bought || '');
+        superMode = false; superPrev = null;
+      }
+      render();
     }
     else if (act === 'clear-filters') {
       clearFilters(el.dataset.view);
