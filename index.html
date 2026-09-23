@@ -680,7 +680,7 @@ body.dragging-active .rank{cursor:grabbing}
 <div class="toast hidden" id="toast"></div>
 
 <script>
-window.BUILD_STAMP = "2026-09-24 | 00:22";
+window.BUILD_STAMP = "2026-09-24 | 00:30";
 </script>
 <script>
 /* ===== נתוני ברירת מחדל – רשימות מוכנות לעברית =====
@@ -2351,6 +2351,12 @@ var AfulaCalc = (function () {
     return hit(s.name, s.store, s.area);
   }
 
+  function shownAreaStats(key) {
+    return C.listStats(state.shopping.filter(function (s) {
+      return itemAreaKey(s) === key && shopFilterPass(s);
+    }));
+  }
+
   function viewShopping() {
     var sh = shopStats();
     var warn = C.dataWarnings(state);
@@ -2414,8 +2420,11 @@ var AfulaCalc = (function () {
       shopShown += list.length;
       // בסינון פעיל אין טעם בכרטיס קטגוריה ריק – ההודעה הכללית בתחתית המסך אומרת את זה פעם אחת
       if (!list.length) return;
-      var ast = areaStats(g.key);
-      var got = ast.bought;
+      // הסה"כ של הקטגוריה סוכם רק את מה שמוצג בה. כשהוא סכם את כל הקטגוריה,
+      // בסינון "סופר" נראו בו גם פריטי "מזון" מחנויות אחרות – והוא יצא גדול
+      // מ"סיכום לפי הסינון" של כל המסך. המונה והפס נשארים של הקטגוריה כולה.
+      var ast = shownAreaStats(g.key);
+      var got = areaStats(g.key).bought;
       h += '<div class="card phase"><div class="phase-head"><h3>' + esc(g.label) +
         (g.unknown ? '<span class="tag warn">אזור לא מוכר</span>' : '') + '</h3>' +
         '<span class="cnt">' + got + '/' + all.length + '</span><span class="spacer"></span></div>' +
@@ -2457,7 +2466,8 @@ var AfulaCalc = (function () {
           '<button class="x" data-act="del" data-coll="shopping" data-id="' + s.id + '" title="מחיקה">✕</button></div>';
       });
       // אותה שורת סיכום כמו בתקציב: כמה תוכנן לקטגוריה וכמה יצא בפועל
-      h += '</div>' + (sup ? '' : '<div class="sectotal"><span>סה"כ</span><span class="spacer"></span>' +
+      h += '</div>' + (sup ? '' : '<div class="sectotal"><span>' +
+        (filtering('shopping') ? 'סה"כ המוצג' : 'סה"כ') + '</span><span class="spacer"></span>' +
         '<span class="small muted">משוער</span><b data-total="ssec:est:' + esc(g.key) + '">' + nis(ast.est) + '</b>' +
         '<span class="small muted">בפועל</span><b data-total="ssec:spend:' + esc(g.key) + '">' + nis(ast.spend) + '</b>' +
         '</div>') +
@@ -3671,7 +3681,7 @@ var AfulaCalc = (function () {
       if (kind === 'bg') src = (bg = bg || budgetTotals());
       else if (kind === 'sh') src = (sh = sh || shopStats());
       else if (kind === 'bsec') src = sectionStats(key);
-      else if (kind === 'ssec') src = areaStats(key);
+      else if (kind === 'ssec') src = shownAreaStats(key);
       else if (kind === 'sfil') src = (sfil = sfil || C.listStats(state.shopping.filter(shopFilterPass)));
       if (src && src[field] != null) n.textContent = nis(src[field]);
     });
