@@ -1194,9 +1194,18 @@
     var sf = filt('shopping', 'store');
     if (sf && stores.indexOf(sf) < 0) stores.push(sf);
     // במצב סופר הסינונים קבועים (סופר · שטרם נקנו), ולכן במקום סרגל מלא – שורה אחת
+    // המתג מחליף רק את סינון המצב (טרם נרכש / נרכש); החנות נשארת סופר
+    var supGot = filt('shopping', 'bought') === '1';
+    var supOpt = function (val, label) {
+      var on = filt('shopping', 'bought') === val;
+      return '<button type="button" class="btn theme-opt' + (on ? ' active' : '') + '" data-act="super-bought"' +
+        ' data-val="' + val + '" aria-pressed="' + on + '">' + label + '</button>';
+    };
     if (sup) h += '<div class="card supbar"><b>🛒 מצב סופר</b><span class="muted">' +
-      state.shopping.filter(shopFilterPass).length + ' נשארו</span>' +
-      '<button type="button" class="btn" data-act="super-mode" aria-pressed="true">יציאה</button></div>';
+      state.shopping.filter(shopFilterPass).length + (supGot ? ' נרכשו' : ' נשארו') + '</span>' +
+      '<button type="button" class="btn" data-act="super-mode" aria-pressed="true">יציאה</button>' +
+      '<div class="supswitch" role="group" aria-label="מה להציג">' +
+      supOpt('0', 'טרם נרכש') + supOpt('1', 'נרכש') + '</div></div>';
     else h += toolbar('shopping', (mv ? [] : [
       ['prio', 'עדיפות', filt('shopping', 'prio'),
         [['', 'כל העדיפויות']].concat(enumFilterOpts(SHOP_PRIO, state.shopping, 'prio'))]]).concat([
@@ -1287,8 +1296,9 @@
           '<button class="btn" data-act="add-shop-in" data-area="' + esc(g.key) + '">➕ פריט חדש</button></div>') +
         '</div>';
     });
-    if (!shopShown) h += '<div class="card"><div class="empty">' + (sup ? 'הכול נקנה 🎉' : 'לא נמצאו פריטים מתאימים') + '</div></div>';
-    if (sup) h += addCard;
+    if (!shopShown) h += '<div class="card"><div class="empty">' + (sup ? (supGot ? 'עוד לא נרכש כלום לסופר' : 'הכול נקנה 🎉') : 'לא נמצאו פריטים מתאימים') + '</div></div>';
+    // בתצוגת "נרכש" פריט חדש היה יורש את הסינון ונולד כבר כנקנה
+    if (sup && !supGot) h += addCard;
 
     // שורה תחתונה למה שמוצג עכשיו: כשמסננים לפי חנות או עדיפות,
     // השאלה המעשית היא כמה זה עולה שם – ולא מה סך הכול. הכרטיס
@@ -2279,6 +2289,10 @@
       // לחיצה ארוכה כבר פתחה את העריכה – הקליק שאחריה לא אמור גם לפתוח את הקישור
       if (linkPress.fired) { linkPress.fired = false; return; }
       openLink(el.dataset.coll, el.dataset.id);
+    }
+    else if (act === 'super-bought') {
+      setFilter('shopping', 'bought', el.dataset.val);
+      render();
     }
     else if (act === 'super-mode') {
       // כניסה: חנות = סופר, מצב = שטרם נקנו. יציאה: הערכים שהיו לפני כן חוזרים.

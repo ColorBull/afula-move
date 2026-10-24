@@ -300,6 +300,11 @@ an aisle), no rank/drag, no per-category "➕ פריט חדש"; the פריט ח�
 without the עדיפות select. Before the move a "ליום הראשון" tag still marks `must` items.
 An item with an empty name falls back to the normal editable row.
 
+`.supbar` carries a two-way switch, **טרם נרכש / נרכש** (`data-act="super-bought"`), styled as
+`.theme-opt`. It only flips the `bought` filter between `'0'` and `'1'`; the store stays סופר, and
+leaving super mode still restores the pre-super filters. In the נרכש view the פריט חדש card is
+hidden — `applyFilterDefaults()` would create the new item already bought.
+
 ### View state across reloads
 
 `LS_UI` (`afula_move_ui`) keeps `{view, sortBy, filterBy}` in localStorage, written by
