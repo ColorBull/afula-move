@@ -96,7 +96,7 @@
     assertEq(AfulaCalc.monthlyBadge(s, nis).tone, 'ok');
   });
 
-  test('הוצאות הקניות נכנסות לסכום החד-פעמי, ופעם אחת בלבד', function () {
+  test('הוצאות הקניות לא נכנסות לתקציב המעבר – הן נספרות בכרטיס הקניות', function () {
     var s = st({
       budget: [row('once', 8500, 0)],
       shopping: [
@@ -106,12 +106,11 @@
       ]
     });
     var b = AfulaCalc.budgetStats(s);
-    assertEq(b.once.shoppingActual, 1390);
-    assertEq(b.once.budgetActual, 0);
-    assertEq(b.once.actual, 1390, 'הסכום בפועל הוא שורות התקציב ועוד הקניות, בלי כפילות');
-    assertEq(b.once.remaining, 7110);
-    assertEq(b.once.pct, 16);
+    assertEq(b.once.actual, 0, 'תקציב המעבר הוא שורות התקציב בלבד');
+    assertEq(b.once.remaining, 8500);
+    assertEq(b.once.pct, 0);
     assertEq(b.monthly.actual, 0, 'קניות לעולם לא נכנסות לעלות החודשית');
+    assertEq(AfulaCalc.shopStats(s).spend, 1390, 'פריט שעוד לא נקנה לא נספר');
   });
 
   test('מתנה נספרת כנקנתה ויוצאת מכל החישובים – בלי הסתייגות בשורת המצב', function () {
@@ -130,7 +129,6 @@
     assertEq(AfulaCalc.areaStats(s, 'מטבח').est, 0);
     var b = AfulaCalc.budgetStats(s);
     assertEq(b.once.actual, 0);
-    assertEq(b.once.gifts, 1);
     var badge = AfulaCalc.onceBadge(s, nis);
     assertEq(badge.tone, 'ok', 'מתנה אינה אזהרה ואינה מורידה את ה-✅');
     assertEq(badge.text.indexOf('מתנה'), -1, 'אין להסביר את המתנה בשורת המצב');
@@ -158,7 +156,7 @@
     assertEq(AfulaCalc.budgetStats(s).once.actual, 0);
     var w = AfulaCalc.dataWarnings(s);
     assert(w.length === 1 && w[0].indexOf('לא נרשם מחיר') !== -1, 'צריכה להופיע אזהרת מחיר חסר');
-    assertEq(AfulaCalc.onceBadge(s, nis).tone, 'note');
+    assertEq(AfulaCalc.onceBadge(s, nis).tone, 'ok', 'הקניות מחוץ לתקציב המעבר, ולכן גם מחיר חסר לא מסייג אותו');
   });
 
   test('פריט עם אזור לא מוכר נספר בכל הסיכומים ומקבל קבוצה משלו', function () {
@@ -174,7 +172,6 @@
     assertEq(sh.spend, 1000, 'הפריטים היתומים נספרים בהוצאה');
     assertEq(sh.mustLeft, 1, 'הפריטים היתומים נספרים במונה "חייבים"');
     assertEq(sh.orphans, 2);
-    assertEq(AfulaCalc.budgetStats(s).once.shoppingActual, 1000);
 
     var groups = AfulaCalc.areaGroups(s);
     var last = groups[groups.length - 1];

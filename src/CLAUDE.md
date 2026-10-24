@@ -11,8 +11,9 @@ Live at **https://colorbull.github.io/afula-move/** · repo `ColorBull/afula-mov
 
 - **No Node.js on this machine.** No `npm`, `npx`, or any build toolchain. Python 3.13 only.
   Never propose a solution that needs a bundler, a package, or a framework.
-- **Zero dependencies, zero build step for development.** The app is three files loaded by
-  three classic `<script>`/`<link>` tags. Keep it that way.
+- **Zero dependencies, zero build step for development.** The app is a stylesheet and three
+  scripts (`data.js`, `calc.js`, `app.js`, in that order) loaded by classic `<link>`/`<script>`
+  tags. Keep it that way.
 - **Free hosting only.** GitHub Pages + the Firebase free tier. Nothing that bills.
 - **Claude deploys.** The user does not want to run commands or copy files; do the whole
   build-and-publish loop directly.
@@ -32,7 +33,7 @@ Live at **https://colorbull.github.io/afula-move/** · repo `ColorBull/afula-mov
 | `styles.css` | Light/dark, RTL, mobile-first. `.shopmeta` is a **grid**, not flex — see *Field rows* below. |
 | `build_single.py` | → `index-single.html`, the deployable artifact. Firebase **on**. |
 | `build_artifact.py` | → `afula-move-app.html`, for a claude.ai Artifact. Firebase **off** (`ARTIFACT_MODE`), no external refs at all. |
-| `sw.js`, `manifest.json`, `icon.svg` | PWA. Only used by the multi-file version. |
+| `sw.js`, `manifest.json`, `icon.svg` | PWA. Also copied to the repo root, next to the live `index.html`, which links `./manifest.json`. |
 | `firestore.rules` | `moves/{uid}` readable/writable only by that uid; everything else denied. |
 | `mcp-server/afula_mcp.py` | Python MCP server that talks to the same Firestore doc, so Claude Desktop can read and edit the move. Runs **locally, over stdio**. See *MCP server* below. |
 | `tests.html`, `tests.js` | Unit tests for `calc.js`. Open `http://localhost:5178/tests.html` — green box = all pass. No runner, no packages. |
@@ -67,8 +68,10 @@ no shared arithmetic and no combined total. `moneyCards()` in `app.js` renders t
 separate cards on both the Budget and the Overview screen, each with its own over/under badge.
 **Never add a field that spans them.**
 
-Shopping `cost` rolls into `once.actual` (`once.shoppingActual`), counted exactly once and
-attributed to no budget row — the card says so in words. `gift: true` means the item arrived
+Shopping is **not** part of the move budget (since Sep 2026): `once.actual` is budget rows only,
+and shopping spend lives in `shopStats().spend`, shown in its own card on the Shopping and
+Budget screens. There is no `once.shoppingActual` / `once.budgetActual` / `once.gifts` any more.
+`gift: true` means the item arrived
 without money changing hands, and it is therefore **out of every money calculation** — not the
 estimate and not the actual. `shopStats` skips gifts when summing `est` / `estCount` (and keeps
 them out of `estScope`, the coverage denominator); `areaStats` skips them too; `itemSpend()`
@@ -76,12 +79,12 @@ already returned 0. On the row itself both the משוער and the שולם input
 `—`, so the exclusion is visible rather than silent — the stored values survive, so unticking 🎁
 brings them back.
 
-A gift therefore does **not** qualify the once-badge: it stays the green ✅ and says nothing
-about the gift. An earlier version turned the badge yellow (ℹ️) and appended
+A gift is never a warning: no badge turns yellow for it and no text mentions it. An earlier version turned the badge yellow (ℹ️) and appended
 "פריט אחד התקבל במתנה ואינו חיסכון מול התכנון"; the user read the colour as "something is wrong"
 and the sentence as the app telling them what they had just told it. Only `unknownCost` —
-`bought && !gift && cost <= 0`, "price never entered" — drops the ✅, because that one really
-does make the remainder untrustworthy. It is a data-quality warning, never spend.
+`bought && !gift && cost <= 0`, "price never entered" — is a data-quality warning
+(`dataWarnings()`), never spend. Since shopping left the move budget it no longer touches the
+once-badge; the warning is shown in the shopping card.
 
 🎁 and the `bought` checkbox move together **in both directions**: ticking 🎁 sets `bought`,
 unticking 🎁 clears it, and unticking `bought` clears `gift`. The half-state that used to
@@ -171,6 +174,10 @@ counter and filter; every `<select>` uses `optsWith()`, which prepends the raw v
 width by its own content, so no two rows' columns were ever aligned. Two variants:
 `.shopmeta.buy` (עדיפות · משוער · שולם · חנות · קטגוריה · קישור) and `.shopmeta.bud`
 (מתוכנן · בפועל · קטגוריה · ספק). Adding or removing a field means updating that template.
+After the move (see *After the move* below) the עדיפות cell is gone and `.moved` is added to the
+row; above 820px `.shopmeta.buy.moved` / `.shopmeta.super.moved` drop that column. That rule is
+inside `@media(min-width:821px)` on purpose: three classes would otherwise beat the mobile
+`auto-fit` templates.
 Below 820px it becomes 3 columns with the link button spanning the full width; below 520px,
 2 wide columns — at 3 the `<select>`s clip ("אמבטיה ושירותים"), and an extra row beats
 truncated text.
@@ -257,6 +264,16 @@ predicate lives in one place, `shopFilterPass()`, used both by `viewShopping()` 
 `refreshTotals()` (source `sfil`), so the sums move while typing. `AfulaCalc.listStats(list)`
 sums any list of shopping items; `areaStats()` is now a thin filter over it. The card is
 hidden with no filter, so it never duplicates the card at the top of the screen.
+
+### After the move
+
+`moved()` in `app.js` is true once `settings.moveDate` is set and **strictly in the past** — on
+the move day itself "ליום הראשון" is still the point. When it is true the priorities stop
+existing in the UI: no עדיפות select on shopping rows or in פריט חדש (new items get
+`prio: 'soon'` silently), no עדיפות filter, no "לפי עדיפות" sort, and the Overview alert about
+unbought "ליום הראשון" items is not shown. `viewShopping()` also clears a saved `prio` filter or
+`prio` sort, because an invisible filter would hide items with no way to undo it. The stored
+`prio` values are kept untouched, so moving the date forward brings everything back.
 
 ### View state across reloads
 
@@ -412,12 +429,22 @@ Two things that trip this up every time:
    and never copy the GitHub one back down.
 
 3. **The GitHub repo has three parts.** Root `index.html` is the deployed single-file
-   build (~179KB); `src/` is a *backup copy* of the multi-file source (`app.js`, `calc.js`,
+   build (~200KB); `src/` is a *backup copy* of the multi-file source (`app.js`, `calc.js`,
    `data.js`, `styles.css`, the 50-line `index.html` shell, `tests.html` / `tests.js`, the
    build scripts, this file); `mcp-server/` is a backup of the connector. `src/` is a
    snapshot, not the working tree - the working tree is still this Drive folder, and edits go
    there first. `src/` drifts until it is re-uploaded, so refresh it after meaningful changes.
    `service-account.json` must never appear in any of them.
+
+   **`src/` was fully re-synced from the live `index.html` on 24 Oct 2026** (it had drifted by
+   several features). Since then `python build_single.py` inside `src/` reproduces the deployed
+   root `index.html` byte for byte except `BUILD_STAMP` — that is the check after any re-sync.
+   `build_single.py` inlines `styles.css`, `data.js`, `calc.js`, `app.js` and keeps one external
+   reference, `./manifest.json` (served from the repo root). At that point the Drive folder was
+   *behind* `src/` — pull `src/` down before the next local build.
+
+   Cloud Claude Code sessions work on a clone of the GitHub repo and push with git, not through
+   the web editor. There, edit root `index.html` and the matching file in `src/` together.
 
 `index-single.html` is gitignored — it is a build output, rebuilt on demand.
 
@@ -516,8 +543,7 @@ guessing.
 
 ## Known, accepted
 
-- The live site logs a 404 for `sw.js`. The published artifact is one self-contained HTML file,
-  so `sw.js` was never deployed beside it. The registration is `.catch()`-wrapped and nothing
-  breaks. Offered to silence it; the user hasn't asked.
+- `sw.js`, `manifest.json` and `icon.svg` now sit at the repo root beside `index.html` (Sep 2026),
+  so the old `sw.js` 404 on the live site is gone. The registration stays `.catch()`-wrapped.
 - Firestore sync can only be verified from an `https` origin with a real Google account, so it
   is not testable from `localhost` in the usual loop.
