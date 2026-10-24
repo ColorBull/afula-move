@@ -155,9 +155,10 @@ COLLECTIONS: Dict[str, Dict[str, Any]] = {
     },
     "shopping": {
         "desc": "קניות לדירה",
-        "fields": ["name", "area", "prio", "est", "cost", "store", "bought"],
+        "fields": ["name", "area", "prio", "est", "cost", "store", "bought", "gift", "link"],
         "required": ["name"],
-        "defaults": {"prio": "soon", "est": 0, "cost": 0, "store": "", "bought": False},
+        "defaults": {"prio": "soon", "est": 0, "cost": 0, "store": "", "bought": False,
+                     "gift": False, "link": ""},
         "enums": {"prio": ["must", "soon", "later"]},
     },
     "boxes": {
@@ -209,6 +210,18 @@ PRIO_LABELS = {"must": "ליום הראשון", "soon": "שבוע ראשון", "
 _FINALS = str.maketrans("ךםןףץ", "כמנפצ")
 
 
+def _moved(settings: Dict[str, Any]) -> bool:
+    """כמו moved() באפליקציה: תאריך המעבר כבר עבר (לא כולל יום המעבר עצמו).
+    מאז העדיפויות ("ליום הראשון" וכו') כבר לא רלוונטיות, והאפליקציה נקראת "ניהול דירה"."""
+    md = settings.get("moveDate") or ""
+    return bool(md) and md < time.strftime("%Y-%m-%d")
+
+
+def _spend(x: Dict[str, Any]) -> float:
+    """כמו itemSpend() באפליקציה: רק פריט שנקנה ואינו מתנה."""
+    return (x.get("cost") or 0) if x.get("bought") and not x.get("gift") else 0
+
+
 def _norm(value: Any) -> str:
     return str(value).lower().translate(_FINALS)
 
@@ -248,6 +261,9 @@ def get_schema() -> str:
             "allowed_values": meta["enums"],
         }
     schema["_labels"] = {"phase": PHASE_LABELS, "prio": PRIO_LABELS}
+    if _moved(_load().get("settings", {})):
+        schema["_note"] = ("המעבר כבר היה: העדיפויות (prio) לא מוצגות יותר באפליקציה, "
+                           "ואין צורך לשאול עליהן או למלא אותן.")
     return json.dumps(schema, ensure_ascii=False, indent=1)
 
 
@@ -272,12 +288,22 @@ def get_overview() -> str:
         except ValueError:
             days_left = None
 
+    moved = _moved(settings)
     one_time = sum((r.get("actual") or 0) for r in budget
                    if not sections.get(r.get("section"), {}).get("recurring"))
     recurring = sum(((r.get("actual") or 0) or (r.get("planned") or 0)) for r in budget
                     if sections.get(r.get("section"), {}).get("recurring"))
 
+    shop = {"bought": sum(1 for x in shopping if x.get("bought") or x.get("gift")),
+            "total": len(shopping),
+            "stores": sorted({(x.get("store") or "").strip() for x in shopping} - {""})}
+    if not moved:
+        shop["must_have_left"] = sum(1 for x in shopping if not x.get("bought")
+                                     and not x.get("gift") and x.get("prio") == "must")
+
     return json.dumps({
+        "app_name": "ניהול דירה" if moved else "ניהול מעבר דירה",
+        "moved": moved,
         "move_date": settings.get("moveDate") or None,
         "days_left": days_left,
         "from_address": settings.get("fromAddr") or None,
@@ -285,9 +311,7 @@ def get_overview() -> str:
         "tasks": {"done": sum(1 for t in tasks if t.get("done")), "total": len(tasks),
                   "overdue": sum(1 for t in tasks if not t.get("done") and t.get("due")
                                  and t["due"] < time.strftime("%Y-%m-%d"))},
-        "shopping": {"bought": sum(1 for x in shopping if x.get("bought")), "total": len(shopping),
-                     "must_have_left": sum(1 for x in shopping
-                                           if not x.get("bought") and x.get("prio") == "must")},
+        "shopping": shop,
         "services": {"done": sum(1 for x in services if x.get("status") == "done"),
                      "total": len(services)},
         "boxes": {"packed": sum(1 for b in boxes if b.get("status") != "todo"), "total": len(boxes)},
@@ -295,7 +319,8 @@ def get_overview() -> str:
             "planned_total": sum((r.get("planned") or 0) for r in budget),
             "one_time_spent": one_time,
             "recurring_monthly": recurring,
-            "shopping_spent": sum((x.get("cost") or 0) for x in shopping),
+            # הקניות אינן חלק מתקציב המעבר – זה סכום נפרד, לא חלק מ-one_time_spent
+            "shopping_spent": sum(_spend(x) for x in shopping),
         },
         "budget_sections": [{"id": x["id"], "name": x["name"], "recurring": x.get("recurring", False)}
                             for x in s.get("budgetSections", [])],
@@ -321,7 +346,7 @@ def list_items(collection: str, only_open: bool = False, contains: str = "") -> 
         if collection == "tasks":
             items = [x for x in items if not x.get("done")]
         elif collection == "shopping":
-            items = [x for x in items if not x.get("bought")]
+            items = [x for x in items if not (x.get("bought") or x.get("gift"))]
         elif collection == "services":
             items = [x for x in items if x.get("status") != "done"]
         elif collection == "boxes":
@@ -331,13 +356,17 @@ def list_items(collection: str, only_open: bool = False, contains: str = "") -> 
         needle = _norm(contains)
         items = [x for x in items if _matches(x, needle)]
 
-    # תוויות בעברית לשדות מקודדים, כדי שהתשובה תהיה קריאה
+    # תוויות בעברית לשדות מקודדים, כדי שהתשובה תהיה קריאה.
+    # אחרי המעבר העדיפות לא מוצגת – בדיוק כמו באפליקציה
+    moved = _moved(s.get("settings", {}))
     out = []
     for x in items:
         row = dict(x)
         if "phase" in row:
             row["phase_label"] = PHASE_LABELS.get(row["phase"], row["phase"])
-        if "prio" in row:
+        if moved:
+            row.pop("prio", None)
+        elif "prio" in row:
             row["prio_label"] = PRIO_LABELS.get(row["prio"], row["prio"])
         if collection == "budget":
             sec = next((y for y in s.get("budgetSections", []) if y["id"] == row.get("section")), None)

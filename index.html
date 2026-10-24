@@ -513,6 +513,8 @@ label.f>.datef>input[type=date]{width:100%}
   .shopmeta.bud{grid-template-columns:repeat(auto-fit,minmax(8.5em,1fr));gap:7px 8px}
   .shopmeta.super{grid-template-columns:repeat(auto-fit,minmax(8.5em,1fr));gap:7px 8px}
   .shopmeta.buy > :last-child{grid-column:1/-1}
+  /* בלי עדיפות נשארים ארבעה שדות – 2×2, בלי חנות לבד בשורה */
+  .shopmeta.buy.moved > :last-child{grid-column:auto}
   .shopmeta.bud > :last-child{grid-column:1/-1}
   .shopmeta .mini{padding:6px 8px;font-size:12px}
 }
@@ -537,6 +539,17 @@ select.mini.urgent{background:var(--warn-soft);color:var(--warn);border-color:tr
 .tag{font-size:11px;padding:3px 8px;border-radius:99px;background:var(--line);color:var(--muted)}
 .tag.ok{background:var(--ok-soft);color:var(--ok)}
 .tag.warn{background:var(--warn-soft);color:var(--warn)}
+/* מצב סופר: שורה גדולה שכולה אזור לחיצה – מול המדף, ביד אחת */
+.supbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.supbar b{font-size:18px}
+.supbar .btn{margin-inline-start:auto;min-height:44px}
+.suprow{display:flex;align-items:center;gap:14px;min-height:56px;padding:10px 4px;
+  border-bottom:1px solid var(--line);cursor:pointer;-webkit-tap-highlight-color:transparent;user-select:none}
+.suprow:last-child{border-bottom:0}
+.suprow:active{background:var(--line)}
+.suprow input[type=checkbox]{width:28px;height:28px;margin:0;flex:none;accent-color:var(--brand)}
+.suprow .supname{flex:1;font-size:18px;font-weight:500;line-height:1.35;word-break:break-word}
+.suprow.done .supname{text-decoration:line-through;color:var(--muted)}
 
 /* ---- Table (budget) ---- */
 .tablewrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
@@ -2002,6 +2015,21 @@ var AfulaCalc = (function () {
   // שם הפריט הוא textarea ולא input: בנייד שם ארוך נחתך באמצע, והיה צריך
   // לגלול בתוך תיבה צרה כדי לקרוא אותו. עכשיו הוא נשבר לשורות, וגובהו
   // מתאים את עצמו לתוכן ב-growTitles שרץ בסוף כל render.
+  // חנות נבחרת מהחנויות שכבר קיימות, ו"חנות חדשה…" פותח שאלה לשם
+  var NEW_STORE = '__new';
+  function storeSelect(s, stores) {
+    var cur = (s.store || '').trim();
+    var list = stores.slice();
+    if (list.indexOf(SUPER_STORE) < 0) list.push(SUPER_STORE);
+    if (cur && list.indexOf(cur) < 0) list.push(cur);
+    list.sort(cmpText);
+    return '<select class="mini" title="חנות" ' + bind('shopping', s.id, 'store') + '>' +
+      '<option value=""' + (cur ? '' : ' selected') + '>חנות</option>' +
+      list.map(function (v) {
+        return '<option value="' + esc(v) + '"' + (v === cur ? ' selected' : '') + '>' + esc(v) + '</option>';
+      }).join('') +
+      '<option value="' + NEW_STORE + '">➕ חנות חדשה…</option></select>';
+  }
   function titleBox(collName, id, field, value, placeholder) {
     return '<textarea class="title" rows="1"' +
       (placeholder ? ' placeholder="' + esc(placeholder) + '"' : '') +
@@ -2397,11 +2425,12 @@ var AfulaCalc = (function () {
       h += '</div>';
     }
 
-    h += '<div class="card"><h2>פריט חדש</h2><div class="row">' +
+    var addCard = '<div class="card"><h2>פריט חדש</h2><div class="row">' +
       '<input id="nsName" placeholder="מה צריך לקנות?" style="flex:2 1 180px">' +
       '<select id="nsArea" style="flex:1 1 120px">' + opts(state.shopAreas, state.shopAreas[0]) + '</select>' +
-      (mv ? '' : '<select id="nsPrio" style="flex:1 1 120px">' + opts(SHOP_PRIO, 'soon', 'id', 'label') + '</select>') +
+      (mv || sup ? '' : '<select id="nsPrio" style="flex:1 1 120px">' + opts(SHOP_PRIO, 'soon', 'id', 'label') + '</select>') +
       '<button class="btn primary" data-act="add-shop">הוסף</button></div></div>';
+    if (!sup) h += addCard;
 
     // הסינונים נבנים מהקבוצות בפועל ומהערכים שקיימים בנתונים, כדי שגם ערך
     // שאינו ברשימה המוכרת יהיה ניתן לסינון ולא ייעלם מהמסך
@@ -2411,7 +2440,11 @@ var AfulaCalc = (function () {
     // אחרת ה-select מציג "כל החנויות" בזמן שהסינון בפועל פעיל
     var sf = filt('shopping', 'store');
     if (sf && stores.indexOf(sf) < 0) stores.push(sf);
-    h += toolbar('shopping', (mv ? [] : [
+    // במצב סופר הסינונים קבועים (סופר · שטרם נקנו), ולכן במקום סרגל מלא – שורה אחת
+    if (sup) h += '<div class="card supbar"><b>🛒 מצב סופר</b><span class="muted">' +
+      state.shopping.filter(shopFilterPass).length + ' נשארו</span>' +
+      '<button type="button" class="btn" data-act="super-mode" aria-pressed="true">יציאה</button></div>';
+    else h += toolbar('shopping', (mv ? [] : [
       ['prio', 'עדיפות', filt('shopping', 'prio'),
         [['', 'כל העדיפויות']].concat(enumFilterOpts(SHOP_PRIO, state.shopping, 'prio'))]]).concat([
       ['area', 'קטגוריה', filt('shopping', 'area'),
@@ -2455,6 +2488,15 @@ var AfulaCalc = (function () {
         // שדה מחיר ריק בשורה שסומנה כנקנתה כבר אומר את זה, והאזהרה המסכמת בראש המסך
         // היא המקום שבו סופרים את זה. כל שדה יושב בתא קבוע ברשת, כדי שכל השורות יתיישרו.
         var gift = C.isGift(s), got = C.isBought(s);
+        // במצב סופר: label שלם סביב תיבת הסימון, כך שלחיצה בכל מקום בשורה מסמנת.
+        // בלי ✕ – מחיקה בטעות מול המדף. פריט בלי שם (חדש) מקבל את השורה הרגילה.
+        if (sup && s.name) {
+          h += '<label class="suprow' + (got ? ' done' : '') + '">' +
+            '<input type="checkbox"' + (got ? ' checked' : '') + ' data-act="toggle" data-coll="shopping" data-id="' + s.id + '" data-field="bought">' +
+            '<span class="supname">' + esc(s.name) + '</span>' +
+            (!mv && s.prio === 'must' && !got ? '<span class="tag warn">ליום הראשון</span>' : '') + '</label>';
+          return;
+        }
         h += '<div class="task' + (got ? ' done' : '') + '" data-drag-item data-id="' + s.id + '">' +
           rank(i, sManual) +
           '<input type="checkbox"' + (got ? ' checked' : '') + ' data-act="toggle" data-coll="shopping" data-id="' + s.id + '" data-field="bought">' +
@@ -2469,7 +2511,7 @@ var AfulaCalc = (function () {
           '<input type="number" inputmode="numeric" min="0" class="mini" placeholder="' +
           (gift ? '—' : 'שולם ₪') + '" value="' + (gift ? '' : (s.cost || '')) + '"' +
           (gift ? ' disabled' : '') + ' ' + bind('shopping', s.id, 'cost') + '>') +
-          '<input class="mini" placeholder="חנות" value="' + esc(s.store || '') + '" ' + bind('shopping', s.id, 'store') + '>' +
+          storeSelect(s, stores) +
           (sup ? '' : '<select class="mini" title="העברה לקטגוריה אחרת" ' + bind('shopping', s.id, 'area') + '>' +
           optsWith(state.shopAreas, s.area) + '</select>') +
           '</div></div>' +
@@ -2488,11 +2530,12 @@ var AfulaCalc = (function () {
         '</div>') +
         // הוספה מתוך הקטגוריה עצמה, כמו בתקציב – בלי לגלול לראש המסך.
         // קבוצת "ללא אזור" אינה קטגוריה אמיתית ולכן אין לה כפתור.
-        (g.unknown ? '' : '<div class="row" style="margin-top:10px">' +
+        (g.unknown || sup ? '' : '<div class="row" style="margin-top:10px">' +
           '<button class="btn" data-act="add-shop-in" data-area="' + esc(g.key) + '">➕ פריט חדש</button></div>') +
         '</div>';
     });
-    if (!shopShown) h += '<div class="card"><div class="empty">לא נמצאו פריטים מתאימים</div></div>';
+    if (!shopShown) h += '<div class="card"><div class="empty">' + (sup ? 'הכול נקנה 🎉' : 'לא נמצאו פריטים מתאימים') + '</div></div>';
+    if (sup) h += addCard;
 
     // שורה תחתונה למה שמוצג עכשיו: כשמסננים לפי חנות או עדיפות,
     // השאלה המעשית היא כמה זה עולה שם – ולא מה סך הכול. הכרטיס
@@ -2774,9 +2817,13 @@ var AfulaCalc = (function () {
   }
 
   function renderDrawer() {
+    // אחרי המעבר זו כבר לא אפליקציית מעבר
+    var appName = moved() ? 'ניהול דירה' : 'ניהול מעבר דירה';
+    document.title = appName;
+    $('#btnBrand strong').textContent = appName;
     $('#drawer').innerHTML =
       '<div class="drawer-head">' +
-      (isDesktop() ? '' : '<span style="font-size:20px">🏡</span><strong>ניהול מעבר דירה</strong>') +
+      (isDesktop() ? '' : '<span style="font-size:20px">🏡</span><strong>' + appName + '</strong>') +
       '</div>' +
       TABS.map(function (t) {
         var c = sectionCount(t.id);
@@ -3628,6 +3675,13 @@ var AfulaCalc = (function () {
   });
   document.addEventListener('change', function (e) {
     var el = e.target.closest('[data-act="edit"]');
+    if (el && el.dataset.field === 'store' && el.value === NEW_STORE) {
+      var sit = findItem(el.dataset.coll, el.dataset.id);
+      var sname = (prompt('שם החנות החדשה') || '').trim();
+      if (sit && sname) { sit.store = sname; save(); toast('נוספה חנות "' + sname + '"'); }
+      render();   // גם בביטול: ה-select חוזר לחנות הקודמת
+      return;
+    }
     if (el && (el.tagName === 'SELECT' || el.type === 'date')) {
       // העברת משימה לשלב אחר מוציאה אותה מהרשימה הנוכחית – מאשרים בהודעה קצרה
       var movedTask = el.dataset.coll === 'tasks' && el.dataset.field === 'phase';

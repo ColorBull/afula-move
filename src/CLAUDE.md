@@ -275,6 +275,31 @@ unbought "ליום הראשון" items is not shown. `viewShopping()` also clear
 `prio` sort, because an invisible filter would hide items with no way to undo it. The stored
 `prio` values are kept untouched, so moving the date forward brings everything back.
 
+The app name follows it too: `renderDrawer()` sets `document.title`, `#btnBrand strong` and the
+drawer head to **"ניהול דירה"** after the move, "ניהול מעבר דירה" before. The static `<title>`,
+the PWA manifest name and the Google Calendar name (`GCAL.calendarName`, used to *find* the
+existing calendar) are deliberately left alone. The MCP server mirrors all of this with its own
+`_moved()` — see *MCP server*.
+
+### Store is a dropdown
+
+`shopping.store` is chosen from a `<select>` (`storeSelect()`), not typed. The options are the
+stores that already appear on some item (`uniq()` over `state.shopping`), plus `SUPER_STORE`
+("סופר") always, plus the item's own value, plus **"➕ חנות חדשה…"** (`NEW_STORE = '__new'`),
+which opens `prompt()` for a name. The `change` handler catches `__new` before the generic
+select path; on cancel it just re-renders, so the select snaps back. There is no separate
+store registry: a store no item uses any more drops out of the list by itself.
+
+### Super mode on the phone
+
+Super mode (`superMode`, fixed filters store = סופר · not bought) is a shopping-trip view, so
+it renders differently, not just with fewer fields: one `.supbar` card (count left + exit)
+instead of the toolbar; each named item is a `label.suprow` wrapping its checkbox, so a tap
+anywhere on the row ticks it (56px rows, 28px checkbox, 18px text); no ✕ (accidental deletes in
+an aisle), no rank/drag, no per-category "➕ פריט חדש"; the פריט חדש card moves to the bottom
+without the עדיפות select. Before the move a "ליום הראשון" tag still marks `must` items.
+An item with an empty name falls back to the normal editable row.
+
 ### View state across reloads
 
 `LS_UI` (`afula_move_ui`) keeps `{view, sortBy, filterBy}` in localStorage, written by
@@ -350,6 +375,16 @@ That is the only supported way to run it. Claude Desktop's config
 `AFULA_MOVE_UID` is optional: with one document under `moves/` the server picks it by itself.
 The key is read from `mcp-server/service-account.json` next to the script unless `AFULA_SA_KEY`
 overrides it.
+
+### Keep it in step with the app
+
+The server reimplements a few app rules in Python, and they must match `app.js` / `calc.js`:
+`_moved()` = `moved()` (move date strictly in the past), `_spend()` = `itemSpend()` (bought and
+not a gift). After the move `get_overview` returns `moved: true`, `app_name: "ניהול דירה"` and
+no `must_have_left`, `list_items` drops `prio` from shopping rows, and `get_schema` adds a note
+that priorities no longer matter. `get_overview.shopping.stores` lists the stores in use, and
+`shopping_spent` is separate from the move budget, as in the app. Shopping `fields` include
+`gift` and `link`.
 
 ### Remote hosting was tried and dropped
 

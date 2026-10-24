@@ -496,6 +496,8 @@ label.f>.datef>input[type=date]{width:100%}
   .shopmeta.bud{grid-template-columns:repeat(auto-fit,minmax(8.5em,1fr));gap:7px 8px}
   .shopmeta.super{grid-template-columns:repeat(auto-fit,minmax(8.5em,1fr));gap:7px 8px}
   .shopmeta.buy > :last-child{grid-column:1/-1}
+  /* בלי עדיפות נשארים ארבעה שדות – 2×2, בלי חנות לבד בשורה */
+  .shopmeta.buy.moved > :last-child{grid-column:auto}
   .shopmeta.bud > :last-child{grid-column:1/-1}
   .shopmeta .mini{padding:6px 8px;font-size:12px}
 }
@@ -520,6 +522,17 @@ select.mini.urgent{background:var(--warn-soft);color:var(--warn);border-color:tr
 .tag{font-size:11px;padding:3px 8px;border-radius:99px;background:var(--line);color:var(--muted)}
 .tag.ok{background:var(--ok-soft);color:var(--ok)}
 .tag.warn{background:var(--warn-soft);color:var(--warn)}
+/* מצב סופר: שורה גדולה שכולה אזור לחיצה – מול המדף, ביד אחת */
+.supbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.supbar b{font-size:18px}
+.supbar .btn{margin-inline-start:auto;min-height:44px}
+.suprow{display:flex;align-items:center;gap:14px;min-height:56px;padding:10px 4px;
+  border-bottom:1px solid var(--line);cursor:pointer;-webkit-tap-highlight-color:transparent;user-select:none}
+.suprow:last-child{border-bottom:0}
+.suprow:active{background:var(--line)}
+.suprow input[type=checkbox]{width:28px;height:28px;margin:0;flex:none;accent-color:var(--brand)}
+.suprow .supname{flex:1;font-size:18px;font-weight:500;line-height:1.35;word-break:break-word}
+.suprow.done .supname{text-decoration:line-through;color:var(--muted)}
 
 /* ---- Table (budget) ---- */
 .tablewrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
