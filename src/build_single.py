@@ -57,6 +57,7 @@ def main():
 <meta name="description" content="תכנון וניהול מעבר דירה: משימות, קניות, ארגזים, תקציב ושירותים">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="ניהול מעבר דירה">
+<link rel="manifest" href="./manifest.json">
 <link rel="icon" href="{icon_uri}">
 <link rel="apple-touch-icon" href="{icon_uri}">
 {FONTS}
@@ -75,6 +76,9 @@ window.BUILD_STAMP = "{STAMP}";
 {read("data.js")}
 </script>
 <script>
+{read("calc.js")}
+</script>
+<script>
 {read("app.js")}
 </script>
 </body>
@@ -84,7 +88,7 @@ window.BUILD_STAMP = "{STAMP}";
     # ‎ARTIFACT_MODE‎ לא מוגדר כאן, ולכן הסנכרון מול Firebase פעיל
     if "ARTIFACT_MODE = true" in doc:
         raise SystemExit("שגיאה: מצב Artifact דלוף לקובץ המתארח")
-    if 'src="./' in doc or 'href="./' in doc:
+    if 'src="./' in doc or 'href="./' in doc.replace('href="./manifest.json"', ''):
         raise SystemExit("שגיאה: נשארה הפניה לקובץ חיצוני")
 
     OUT.write_text(doc, encoding="utf-8")

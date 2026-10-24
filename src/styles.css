@@ -186,12 +186,19 @@ button.brand:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
 .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:14px;margin-bottom:12px}
 .card h2{font-size:15px;margin-bottom:10px;display:flex;align-items:center;gap:8px;justify-content:space-between}
 .card h2 .sub{font-size:12px;color:var(--muted);font-weight:400}
+/* כפתור-אייקון בשורת כותרת של כרטיס לא אמור להימתח או לגדול */
+.card h2 .icontoggle{flex:none}
 .grid{display:grid;gap:10px}
 /* רשת שיושבת ישירות במסך צריכה את אותו מרווח תחתון ככרטיס, אחרת
    האלמנט שאחריה נצמד אליה ונראה דחוק */
 .views > .grid{margin-bottom:12px}
 .grid.g2{grid-template-columns:repeat(2,1fr)}
 .grid.g4{grid-template-columns:repeat(2,1fr)}
+/* שלושה כרטיסים: בטלפון הראשון (מתוכנן / סה"כ) ברוחב מלא ושניים מתחתיו,
+   במקום שורה של שניים ואחד יתום */
+.grid.g3{grid-template-columns:repeat(2,1fr)}
+.grid.g3>:first-child{grid-column:1/-1}
+@media(min-width:520px){.grid.g3{grid-template-columns:repeat(3,1fr)}.grid.g3>:first-child{grid-column:auto}}
 @media(min-width:700px){.grid.g4{grid-template-columns:repeat(4,1fr)}}
 .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .spacer{flex:1}
@@ -239,6 +246,7 @@ button.alert-card.danger{border-color:var(--danger);background:var(--danger-soft
 button.alert-card:hover{filter:brightness(1.08)}
 button.alert-card:active{transform:scale(.99)}
 button.alert-card:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
+button.alert-card b{display:block}
 button.alert-card .small{margin-top:4px;opacity:.85}
 .alert-go{
   display:inline-block;margin-top:8px;font-size:12.5px;font-weight:600;
@@ -316,8 +324,17 @@ label.f>.datef>input[type=date]{width:100%}
 .task:last-child{border-bottom:0}
 .task input[type=checkbox]{margin-top:4px;width:19px;height:19px;accent-color:var(--brand);flex:none}
 .task .t{flex:1;min-width:0}
-.task .t input.title{border:0;background:transparent;padding:2px 0;font-weight:500}
-.task.done .t input.title{text-decoration:line-through;color:var(--muted)}
+/* שורת הכותרת: שם הפריט, 🎁, 🔗 ו-✕ – כולם באותה שורה ובאותו גובה */
+.task > .icontoggle,
+.task > .x{height:26px;width:26px;padding:0;display:grid;place-items:center;margin-top:0}
+/* שם הפריט נשבר לשורות במקום להיחתך. resize ו-overflow מבוטלים כי הגובה
+   מחושב ב-growTitles לפי התוכן, ו-min-height שומר על יישור מול ✕ / 🎁 / 🔗. */
+.task .t textarea.title{
+  border:0;background:transparent;padding:2px 0;font-weight:500;
+  width:100%;min-height:26px;height:26px;line-height:1.4;
+  resize:none;overflow:hidden;white-space:pre-wrap;word-break:break-word
+}
+.task.done .t textarea.title{text-decoration:line-through;color:var(--muted)}
 /* flex-wrap חיוני: בלעדיו שורת הפרטים גולשת מהכרטיס ונחתכת במסך צר */
 .task .meta{display:flex;gap:6px;align-items:center;margin-top:4px;flex-wrap:wrap}
 .task .meta .datef{color:var(--muted);font-size:12px;width:auto;max-width:100%}
@@ -328,7 +345,7 @@ label.f>.datef>input[type=date]{width:100%}
 /* במסך צר כל האלמנטים מתכווצים, כדי שהשורה תישאר קריאה ולא תיחתך */
 @media(max-width:480px){
   .task{gap:7px;padding:8px 2px}
-  .task .t input.title{font-size:14.5px}
+  .task .t textarea.title{font-size:14.5px}
   .task input[type=checkbox]{width:17px;height:17px;margin-top:3px}
   .task .meta{gap:4px;margin-top:5px}
   .task .meta .small{display:none}          /* התווית "יעד:" מיותרת ליד שדה תאריך */
@@ -391,6 +408,18 @@ label.f>.datef>input[type=date]{width:100%}
 }
 .sectotal b{font-variant-numeric:tabular-nums}
 
+/* ---- שורת המצב של סיכום כספי ----
+   כל סיכום מקבל שורה משלו. אין שורת מצב אחת שמערבבת חד-פעמי עם חודשי. */
+.money-note{
+  margin-top:10px;padding:8px 11px;border-radius:10px;
+  font-size:13px;line-height:1.5
+}
+.money-note.ok{background:var(--ok-soft);color:var(--ok)}
+.money-note.warn{background:var(--danger-soft);color:var(--danger)}
+.money-note.note{background:var(--warn-soft);color:var(--warn)}
+.money-note.muted{background:var(--line);color:var(--muted)}
+.money-head h2{margin-bottom:4px}
+
 /* ---- ניהול קטגוריות ---- */
 .seclist{margin-top:12px;border-top:1px solid var(--line)}
 .secrow{
@@ -400,26 +429,97 @@ label.f>.datef>input[type=date]{width:100%}
 .secrow:last-child{border-bottom:0}
 .secrow b{font-size:13.5px}
 
-/* ---- Shopping ---- */
-.shopmeta{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
-.shopmeta .mini{flex:1 1 88px;min-width:78px;padding:5px 7px;font-size:12.5px}
-.shopmeta select.mini{flex:1 1 110px}
+/* ---- שורת השדות הקטנים (קניות ותקציב) ----
+   רשת ולא flex-wrap: ב-flex כל שורה חילקה את הרוחב לפי התוכן שלה, ולכן העמודות
+   של שורות סמוכות לא היו זו מול זו. עם grid לכל שדה יש תא בעל אותו רוחב בכל השורות. */
+.shopmeta{display:grid;gap:6px;margin-top:6px;align-items:center}
+.shopmeta .mini{width:100%;min-width:0;padding:5px 7px;font-size:12.5px}
+/* קניות: עדיפות · משוער · שולם · חנות · קטגוריה */
+.shopmeta.buy{grid-template-columns:1.15fr .9fr .9fr 1fr 1.15fr}
+/* תקציב: מתוכנן · בפועל · קטגוריה · ספק */
+.shopmeta.bud{grid-template-columns:.85fr .85fr 1.1fr 1.5fr}
+/* מצב סופר: עדיפות · חנות בלבד */
+.shopmeta.super{grid-template-columns:1fr 1fr}
+.shopmeta .mini:disabled{opacity:.5;cursor:not-allowed}
+/* אחרי המעבר אין עמודת עדיפות */
+@media(min-width:821px){
+  .shopmeta.buy.moved{grid-template-columns:.9fr .9fr 1fr 1.15fr}
+  .shopmeta.super.moved{grid-template-columns:1fr}
+}
+/* כפתורי-אייקון של שורה (🎁 מתנה, 🔗 קישור): אפור וכבוי, או צבעוני ודלוק.
+   בלי טקסט ובלי תיבת סימון – המצב נקרא מהאייקון עצמו. */
+.icontoggle{
+  flex:none;display:grid;place-items:center;width:26px;height:26px;padding:0;
+  -webkit-appearance:none;appearance:none;
+  border:0;background:transparent;border-radius:8px;cursor:pointer;
+  font-size:14px;line-height:1;opacity:.3;filter:grayscale(1);
+  transition:opacity .15s,background .15s,filter .15s
+}
+.icontoggle:hover{opacity:.75;filter:grayscale(.25);background:var(--line)}
+.icontoggle.on{opacity:1;filter:none}
+.icontoggle:focus-visible{outline:2px solid var(--brand);outline-offset:1px}
+@media(max-width:820px){
+  /* auto-fit עם רצפה ב-em: מספר העמודות נגזר גם מרוחב המסך וגם מגודל
+     הגופן בפועל, כך שאף select לא מצטמצם מתחת לרוחב שהטקסט שלו דורש. */
+  .shopmeta.buy,
+  .shopmeta.bud{grid-template-columns:repeat(auto-fit,minmax(8.5em,1fr))}
+}
+@media(max-width:480px){
+  .icontoggle,
+  .task > .icontoggle,
+  .task > .x{width:24px;height:24px;font-size:13px}
+}
+@media(max-width:520px){
+  /* בנייד שורת הפריט נפרסת לשתי שורות: כותרת + הכפתורים למעלה, ושורת
+     השדות מתחת לכל רוחב הכרטיס. כשהשדות היו כלואים בתוך .t נשארו להם
+     165px מתוך 375 – כל השאר הלך לכפתורים – והטקסט ב-select נחתך.
+     display:contents מוציא את ילדי .t לרשת עצמה, בלי לשנות את ה-HTML. */
+  /* .lite = שורות הסקירה: כותרת + שורת משנה בלבד, בלי מספר, textarea או
+     שורת שדות. עליהן הרשת לא חלה - display:contents היה מוציא את שתי
+     השורות לעמודות auto, הכותרת לא הייתה נשברת והדף כולו גלש לרוחב. */
+  .task:not(.lite){
+    display:grid;align-items:center;
+    grid-template-columns:auto auto minmax(0,1fr) auto auto auto;
+    column-gap:7px;row-gap:6px
+  }
+  .task:not(.lite) .t{display:contents}
+  .task > .rank,
+  .task > input[type=checkbox],
+  .task > .icontoggle,
+  .task > .x{grid-row:1}
+  .task .t textarea.title{grid-row:1;grid-column:3}
+  .task .meta,
+  .task .shopmeta{grid-row:2;grid-column:1/-1}
+  /* אותו auto-fit, עם רווח מעט גדול יותר. הרצפה ב-em היא שמבטיחה
+     ש"ליום הראשון" או "אמבטיה ושירותים" ייכנסו בשלמותם. */
+  .shopmeta.buy,
+  .shopmeta.bud{grid-template-columns:repeat(auto-fit,minmax(8.5em,1fr));gap:7px 8px}
+  .shopmeta.super{grid-template-columns:repeat(auto-fit,minmax(8.5em,1fr));gap:7px 8px}
+  .shopmeta.buy > :last-child{grid-column:1/-1}
+  .shopmeta.bud > :last-child{grid-column:1/-1}
+  .shopmeta .mini{padding:6px 8px;font-size:12px}
+}
 select.mini.urgent{background:var(--warn-soft);color:var(--warn);border-color:transparent;font-weight:600}
 .task.done .shopmeta{opacity:.55}
 
 /* ---- Box cards ---- */
 .box{background:var(--card-2);border:1px solid var(--line);border-radius:14px;padding:10px;display:flex;gap:10px}
-.box .num{
-  flex:none;width:46px;height:46px;border-radius:12px;background:var(--brand-grad);color:#fff;
-  display:grid;place-items:center;font-weight:700;font-size:17px
-}
 .box .body{flex:1;min-width:0;display:flex;flex-direction:column;gap:7px}
-.box .line{display:flex;gap:6px;align-items:center}
-.tagline{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+/* שורות הארגז: העמודות נמדדות ב-em, ולכן טקסט גדול יותר (הגדלת גופן
+   במערכת) מוריד שדה לשורה הבאה במקום לחתוך את שם החדר באמצע המילה.
+   min-width:0 מונע מרוחב האופציה הארוכה ביותר להרחיב את הכרטיס. */
+.box .line{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.box .line > select{flex:1 1 6em;min-width:0}
+.box .line > label{flex:none;white-space:nowrap}
+/* בנייד מספר הארגז והריפוד מתכווצים, כדי שגוף הכרטיס יקבל את הרוחב שחסר
+   לשני שדות החדר – מקור ויעד – באותה שורה. חייב לבוא אחרי הגדרות .box. */
+@media(max-width:520px){
+  .box{padding:8px;gap:7px}
+  .box > .rank{margin-top:8px}
+}
 .tag{font-size:11px;padding:3px 8px;border-radius:99px;background:var(--line);color:var(--muted)}
 .tag.ok{background:var(--ok-soft);color:var(--ok)}
 .tag.warn{background:var(--warn-soft);color:var(--warn)}
-.tag.fragile{background:var(--danger-soft);color:var(--danger)}
 
 /* ---- Table (budget) ---- */
 .tablewrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
@@ -497,6 +597,9 @@ tfoot td{font-weight:700;border-bottom:0}
   /* אותו רוחב כמו שדה סינון, כדי שהכפתור ימלא את החצי הריק בשורה
      האחרונה במקום לתפוס שורה שלמה לעצמו */
   .clearfilt{flex:1 1 46%;font-size:12px;padding:6px 8px}
+  /* בקניות יש גם כפתור מצב סופר: שדה הסינון האחרון מקבל שורה משלו,
+     ושני הכפתורים יושבים יחד בשורה אחת ובאותו גובה */
+  .toolbar:has(.supermode) label.f:last-of-type{flex-basis:100%}
 }
 
 /* ---- שורת לוח השנה ---- */
@@ -514,16 +617,11 @@ tfoot td{font-weight:700;border-bottom:0}
 /* ---- כפתור קישור ---- */
 /* אותה התנהגות בכל מקום: לחיצה קצרה פותחת, לחיצה ארוכה עורכת.
    touch-action מונע מהדפדפן להתחיל גלילה/בחירה תוך כדי הלחיצה הארוכה. */
-.linkbtn{
-  flex:0 0 auto;touch-action:manipulation;
+[data-act="link"]{
+  touch-action:manipulation;
   -webkit-user-select:none;user-select:none;
   -webkit-touch-callout:none
 }
-.linkbtn.has{background:var(--brand-soft);border-color:transparent;color:var(--brand-ink)}
-@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .linkbtn.has{color:var(--brand)}}
-:root[data-theme="dark"] .linkbtn.has{color:var(--brand)}
-.shopmeta .linkbtn{padding:5px 9px;font-size:12px}
-@media(max-width:480px){.shopmeta .linkbtn{padding:4px 7px;font-size:11.5px}}
 
 /* פריט בזמן גרירה */
 [data-drag-item].dragging{

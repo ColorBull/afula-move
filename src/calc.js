@@ -127,31 +127,41 @@ var AfulaCalc = (function () {
     return out;
   }
 
+  /* מה ששולם במסך הקניות, בנפרד מתקציב המעבר, ומפוצל לסופר ולשאר.
+     "סופר" הוא ערך שדה החנות – אותו ערך שמצב סופר מסנן לפיו. */
+  var SUPER_STORE = 'סופר';
+  function isSuper(it) { return String((it && it.store) || '').trim() === SUPER_STORE; }
+  function shopSpend(state) {
+    var st = { total: 0, superm: 0, other: 0, unknownCost: 0 };
+    arr(state && state.shopping).forEach(function (s) {
+      var v = itemSpend(s);
+      st.total += v;
+      if (isSuper(s)) st.superm += v; else st.other += v;
+      if (isCostUnknown(s)) st.unknownCost++;
+    });
+    return st;
+  }
+
   /* שני סיכומים נפרדים לחלוטין:
        once    – תקציב המעבר, ב-₪ חד-פעמיים
        monthly – עלות שוטפת, ב-₪ לחודש
-     אין ביניהם שום פעולת חשבון משותפת, ואין "סך הכול מתוכנן" שמחבר אותם. */
+     אין ביניהם שום פעולת חשבון משותפת, ואין "סך הכול מתוכנן" שמחבר אותם.
+     הקניות אינן נכנסות לאף אחד מהם: "יצא בפועל" של המעבר הוא שורות התקציב
+     בלבד, ומה ששולם בקניות מסוכם לבד ב-shopSpend(). כשהקניות נכנסו לסכום,
+     המתוכנן היה שורות התקציב והבפועל היה שורות + קניות – חריגה שלא הייתה. */
   function budgetStats(state) {
-    var sh = shopStats(state);
-    var oncePlanned = 0, onceRows = 0, recPlanned = 0, recActual = 0;
+    var oncePlanned = 0, onceActual = 0, recPlanned = 0, recActual = 0;
     arr(state && state.budget).forEach(function (r) {
       if (isRecurringRow(state, r)) { recPlanned += num(r.planned); recActual += num(r.actual); }
-      else { oncePlanned += num(r.planned); onceRows += num(r.actual); }
+      else { oncePlanned += num(r.planned); onceActual += num(r.actual); }
     });
-    // הוצאות הקניות נספרות פעם אחת בלבד: הן נכנסות לסכום החד-פעמי כאן,
-    // ואינן משויכות לשום שורת תקציב.
-    var onceActual = onceRows + sh.spend;
     return {
       once: {
         planned: oncePlanned,
-        budgetActual: onceRows,
-        shoppingActual: sh.spend,
         actual: onceActual,
         remaining: oncePlanned - onceActual,
         pct: pct(onceActual, oncePlanned),
-        over: oncePlanned > 0 && onceActual > oncePlanned,
-        gifts: sh.gifts,
-        unknownCost: sh.unknownCost
+        over: oncePlanned > 0 && onceActual > oncePlanned
       },
       monthly: {
         planned: recPlanned,
@@ -195,16 +205,10 @@ var AfulaCalc = (function () {
     if (o.over) {
       return { tone: 'warn', text: '⚠️ חריגה של ' + nis(o.actual - o.planned) + ' מתקציב המעבר' };
     }
-    var base = 'נוצלו ' + nis(o.actual) + ' מתוך ' + nis(o.planned) +
-      ' (' + o.pct + '%), נותרו ' + nis(o.remaining);
-    // מתנה אינה מסויגת כאן: היא הוצאה מכל החישובים, כך שה"נותר" נכון כמות
-    // שהוא. רק מחיר שלא הוזן באמת מערער אותו, ולכן רק הוא מוריד את ה-✅.
-    if (o.unknownCost) {
-      var why = o.unknownCost === 1 ? 'לפריט אחד שנקנה לא נרשם מחיר'
-                                    : 'ל־' + o.unknownCost + ' פריטים שנקנו לא נרשם מחיר';
-      return { tone: 'note', text: 'ℹ️ ' + base + ' · ' + why };
-    }
-    return { tone: 'ok', text: '✅ ' + base };
+    // קניות אינן חלק מהתקציב הזה, ולכן גם מחיר קנייה שלא הוזן לא מסייג אותו –
+    // האזהרה הזאת מוצגת בכרטיס הקניות.
+    return { tone: 'ok', text: '✅ נוצלו ' + nis(o.actual) + ' מתוך ' + nis(o.planned) +
+      ' (' + o.pct + '%), נותרו ' + nis(o.remaining) };
   }
 
   function monthlyBadge(state, nis) {
@@ -244,6 +248,7 @@ var AfulaCalc = (function () {
     listStats: listStats,
     sectionById: sectionById, isRecurringRow: isRecurringRow, rowSectionKey: rowSectionKey,
     sectionStats: sectionStats, sectionGroups: sectionGroups, budgetStats: budgetStats,
+    SUPER_STORE: SUPER_STORE, isSuper: isSuper, shopSpend: shopSpend,
     dataWarnings: dataWarnings, estCoverageText: estCoverageText,
     onceBadge: onceBadge, monthlyBadge: monthlyBadge,
     openServices: openServices, serviceAlert: serviceAlert

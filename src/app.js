@@ -40,6 +40,11 @@
   var daysBetween = function (a, b) {
     return Math.round((new Date(b + 'T00:00:00') - new Date(a + 'T00:00:00')) / 86400000);
   };
+  // אחרי יום המעבר העדיפויות ("ליום הראשון" וכו') כבר לא רלוונטיות
+  var moved = function () {
+    var md = state.settings.moveDate;
+    return !!md && daysBetween(todayISO(), md) < 0;
+  };
   var toast = function (msg) {
     var t = $('#toast');
     t.textContent = msg;
@@ -377,11 +382,17 @@
   };
   var sortBy = {};   // view -> sort key
   var filterBy = {}; // view -> {field: value}
+  // מצב סופר במסך הקניות: תצוגה מינימלית לעמידה מול המדף. נשמר במכשיר
+  // בלבד, כמו המיון והסינונים. superPrev = ערכי החנות והמצב שהיו לפני
+  // ההפעלה, כדי שהיציאה תחזיר את המסך למה שהיה.
+  var superMode = false, superPrev = null;
+  var SUPER_STORE = C.SUPER_STORE;
 
   // רענון של הדף לא אמור לאבד את מקומו של המשתמש: המסך הפעיל, המיון
   // והסינונים נשמרים במכשיר ונטענים בחזרה באתחול.
   function saveUI() {
-    safeLS.set(LS_UI, JSON.stringify({ view: view, sortBy: sortBy, filterBy: filterBy }));
+    safeLS.set(LS_UI, JSON.stringify({ view: view, sortBy: sortBy, filterBy: filterBy,
+      superMode: superMode, superPrev: superPrev }));
   }
   function loadUI() {
     try {
@@ -390,12 +401,15 @@
       if (u.view && VIEWS[u.view]) view = u.view;
       if (u.sortBy && typeof u.sortBy === 'object') sortBy = u.sortBy;
       if (u.filterBy && typeof u.filterBy === 'object') filterBy = u.filterBy;
+      superMode = !!u.superMode;
+      superPrev = u.superPrev && typeof u.superPrev === 'object' ? u.superPrev : null;
     } catch (e) {}
   }
   // חזרה למצב ההתחלתי של מסך אחד: בלי מיון, בלי סינונים ובלי חיפוש פעיל
   function clearFilters(v) {
     delete sortBy[v];
     delete filterBy[v];
+    if (v === 'shopping') { superMode = false; superPrev = null; }
     var s = $('#globalSearch');
     if (s && s.value) s.value = '';
   }
@@ -567,10 +581,11 @@
   }
 
   // סרגל מיון/סינון אחיד. selects = [[id, label, currentValue, [[val,label]…]]…]
-  function toolbar(v, selects) {
+  // extra = כפתור נוסף שיושב בסוף השורה, ליד "נקה סינונים"
+  function toolbar(v, selects, extra) {
     var h = '<div class="card toolbar"><div class="row">' +
       '<label class="f">מיון<select data-sortfor="' + v + '">' +
-      SORTS[v].map(function (o) {
+      SORTS[v].filter(function (o) { return !(o[0] === 'prio' && moved()); }).map(function (o) {
         return '<option value="' + o[0] + '"' + (sortOf(v) === o[0] ? ' selected' : '') + '>' + esc(o[1]) + '</option>';
       }).join('') + '</select></label>';
     (selects || []).forEach(function (s) {
@@ -581,6 +596,7 @@
     });
     h += '<button type="button" class="btn sm clearfilt' + (hasFilters(v) ? ' on' : '') +
       '" data-act="clear-filters" data-view="' + v + '">נקה סינונים 🧹</button>';
+    h += extra || '';
     h += '</div>' +
       (isManual(v) ? '' : '<div class="small muted" style="margin-top:8px">במיון הזה לא ניתן לגרור. חוזרים ל"סדר ידני" כדי לשנות סדר.</div>') +
       '</div>';
@@ -629,11 +645,12 @@
   // חיבור של ₪ חד-פעמי ל-₪ לחודש מייצר מספר חסר משמעות.
   function budgetTotals() {
     var b = budgetStats();
+    var sp = C.shopSpend(state);
     return {
       oncePlanned: b.once.planned, onceActual: b.once.actual, onceRemaining: b.once.remaining,
-      onceBudget: b.once.budgetActual, onceShopping: b.once.shoppingActual,
       monthlyPlanned: b.monthly.planned, monthlyActual: b.monthly.actual,
-      monthlyRemaining: b.monthly.remaining
+      monthlyRemaining: b.monthly.remaining,
+      shopTotal: sp.total, shopSuper: sp.superm, shopOther: sp.other
     };
   }
   function moneyNote(kind) {
@@ -645,18 +662,27 @@
     var tab = linked ? 'budget' : null, shopTab = linked ? 'shopping' : null;
     var warn = C.dataWarnings(state);
 
+    var sp = C.shopSpend(state);
+
     var h = '<div class="card"><h2>תקציב המעבר <span class="sub">חד-פעמי</span></h2>' +
-      '<div class="grid g4">' +
+      '<div class="grid g3">' +
       statCard('מתוכנן', nis(b.once.planned), null, null, tab, 'bg:oncePlanned') +
       statCard('יצא בפועל', nis(b.once.actual), null, null, tab, 'bg:onceActual') +
       statCard('נותר', nis(b.once.remaining), null, null, tab, 'bg:onceRemaining') +
-      statCard('מזה קניות לדירה', nis(b.once.shoppingActual), null, null, shopTab, 'bg:onceShopping') +
       '</div>' + moneyNote('once') +
       '<div class="small muted" style="margin-top:8px">' +
-      'ה"יצא בפועל" מורכב משורות התקציב החד-פעמיות (' +
-      '<b data-total="bg:onceBudget">' + nis(b.once.budgetActual) + '</b>) ועוד מה ששולם במסך הקניות (' +
-      '<b data-total="bg:onceShopping">' + nis(b.once.shoppingActual) + '</b>). ' +
-      'סכום הקניות נספר פעם אחת בלבד ואינו משויך לאף שורת תקציב.' +
+      'שורות התקציב החד-פעמיות בלבד. מה ששולם במסך הקניות מסוכם בכרטיס הבא ואינו נכנס לכאן.' +
+      '</div></div>';
+
+    // הקניות – סכום אחד, מפוצל לסופר ולשאר. אין להן "מתוכנן" ולכן אין כאן חריגה.
+    h += '<div class="card"><h2>שולם בקניות <span class="sub">חד-פעמי</span></h2>' +
+      '<div class="grid g3">' +
+      statCard('סה"כ', nis(sp.total), null, null, shopTab, 'bg:shopTotal') +
+      statCard('בסופר', nis(sp.superm), null, null, shopTab, 'bg:shopSuper') +
+      statCard('שאר החנויות',nis(sp.other), null, null, shopTab, 'bg:shopOther') +
+      '</div>' +
+      '<div class="small muted" style="margin-top:8px">' +
+      '"בסופר" הוא כל מה שנקנה בחנות "' + esc(C.SUPER_STORE) + '". מתנות אינן נספרות.' +
       '</div>';
     if (warn.length) {
       h += '<div class="money-note note" style="margin-top:8px">⚠️ ' + warn.map(esc).join(' ') + '</div>';
@@ -877,7 +903,7 @@
       '</div>';
 
     // --- הודעות שדורשות פעולה. כל אחת פותחת את המסך הנכון עם הסינון הנכון ---
-    if (sh.mustLeft) {
+    if (sh.mustLeft && !moved()) {
       h += alertCard({
         icon: '🛒', tab: 'shopping', cta: 'לרשימה',
         title: sh.mustLeft + ' פריטים שחייבים כבר ליום הראשון עדיין לא נקנו',
@@ -1101,10 +1127,24 @@
     return hit(s.name, s.store, s.area);
   }
 
+  function shownAreaStats(key) {
+    return C.listStats(state.shopping.filter(function (s) {
+      return itemAreaKey(s) === key && shopFilterPass(s);
+    }));
+  }
+
   function viewShopping() {
+    var mv = moved();
+    if (mv) {
+      if (filt('shopping', 'prio')) setFilter('shopping', 'prio', '');
+      if (sortOf('shopping') === 'prio') sortBy.shopping = 'manual';
+    }
     var sh = shopStats();
     var warn = C.dataWarnings(state);
-    var h = '<div class="card"><h2>קניות לדירה <span class="sub">' + sh.bought + '/' + sh.total + ' נקנו</span></h2>' +
+    // מצב סופר: בלי כרטיס הכסף, בלי סיכומי סכומים, בלי ניהול קטגוריות,
+    // ובשורה רק עדיפות וחנות – מה שצריך מול המדף
+    var sup = superMode;
+    var h = sup ? '' : '<div class="card"><h2>קניות לדירה <span class="sub">' + sh.bought + '/' + sh.total + ' נקנו</span></h2>' +
       '<div class="bar"><i style="width:' + pct(sh.bought, sh.total) + '%"></i></div>' +
       '<div class="grid g2" style="margin-top:10px">' +
       '<div class="stat"><div class="k">סה"כ משוער</div><div class="v" data-total="sh:est">' + nis(sh.est) + '</div>' +
@@ -1118,29 +1158,37 @@
                                               : sh.unknownCost + ' פריטים ללא מחיר רשום') : '') +
       '</div></div>' +
       '</div>';
-    if (warn.length) h += '<div class="money-note note" style="margin-top:8px">⚠️ ' + warn.map(esc).join(' ') + '</div>';
-    h += '</div>';
+    if (!sup) {
+      if (warn.length) h += '<div class="money-note note" style="margin-top:8px">⚠️ ' + warn.map(esc).join(' ') + '</div>';
+      h += '</div>';
+    }
 
     h += '<div class="card"><h2>פריט חדש</h2><div class="row">' +
       '<input id="nsName" placeholder="מה צריך לקנות?" style="flex:2 1 180px">' +
       '<select id="nsArea" style="flex:1 1 120px">' + opts(state.shopAreas, state.shopAreas[0]) + '</select>' +
-      '<select id="nsPrio" style="flex:1 1 120px">' + opts(SHOP_PRIO, 'soon', 'id', 'label') + '</select>' +
+      (mv ? '' : '<select id="nsPrio" style="flex:1 1 120px">' + opts(SHOP_PRIO, 'soon', 'id', 'label') + '</select>') +
       '<button class="btn primary" data-act="add-shop">הוסף</button></div></div>';
 
     // הסינונים נבנים מהקבוצות בפועל ומהערכים שקיימים בנתונים, כדי שגם ערך
     // שאינו ברשימה המוכרת יהיה ניתן לסינון ולא ייעלם מהמסך
     var groups = areaGroups();
-    h += toolbar('shopping', [
+    var stores = uniq(state.shopping.map(function (s) { return (s.store || '').trim(); }));
+    // ערך הסינון הנוכחי (למשל "סופר" לפני שיש פריט כזה) חייב להופיע ברשימה,
+    // אחרת ה-select מציג "כל החנויות" בזמן שהסינון בפועל פעיל
+    var sf = filt('shopping', 'store');
+    if (sf && stores.indexOf(sf) < 0) stores.push(sf);
+    h += toolbar('shopping', (mv ? [] : [
       ['prio', 'עדיפות', filt('shopping', 'prio'),
-        [['', 'כל העדיפויות']].concat(enumFilterOpts(SHOP_PRIO, state.shopping, 'prio'))],
+        [['', 'כל העדיפויות']].concat(enumFilterOpts(SHOP_PRIO, state.shopping, 'prio'))]]).concat([
       ['area', 'קטגוריה', filt('shopping', 'area'),
         [['', 'כל הקטגוריות']].concat(groups.map(function (g) { return [g.key, g.label]; }))],
       ['bought', 'מצב', filt('shopping', 'bought'),
         [['', 'הכל'], ['0', 'שטרם נקנו'], ['1', 'שכבר נקנו'], ['gift', 'מתנות'], ['nocost', 'נקנו ללא מחיר']]],
       ['store', 'חנות', filt('shopping', 'store'),
-        [['', 'כל החנויות']].concat(uniq(state.shopping.map(function (s) { return (s.store || '').trim(); }))
-          .map(function (v) { return [v, v]; }))]
-    ]);
+        [['', 'כל החנויות']].concat(stores.map(function (v) { return [v, v]; }))]
+    ]), '<button type="button" class="btn sm clearfilt supermode' + (sup ? ' on' : '') +
+      '" data-act="super-mode" aria-pressed="' + sup + '">' +
+      (sup ? 'יציאה ממצב סופר 🛒' : 'מצב סופר 🛒') + '</button>');
 
     var shopShown = 0;
     var sManual = isManual('shopping');
@@ -1153,8 +1201,11 @@
       shopShown += list.length;
       // בסינון פעיל אין טעם בכרטיס קטגוריה ריק – ההודעה הכללית בתחתית המסך אומרת את זה פעם אחת
       if (!list.length) return;
-      var ast = areaStats(g.key);
-      var got = ast.bought;
+      // הסה"כ של הקטגוריה סוכם רק את מה שמוצג בה. כשהוא סכם את כל הקטגוריה,
+      // בסינון "סופר" נראו בו גם פריטי "מזון" מחנויות אחרות – והוא יצא גדול
+      // מ"סיכום לפי הסינון" של כל המסך. המונה והפס נשארים של הקטגוריה כולה.
+      var ast = shownAreaStats(g.key);
+      var got = areaStats(g.key).bought;
       h += '<div class="card phase"><div class="phase-head"><h3>' + esc(g.label) +
         (g.unknown ? '<span class="tag warn">אזור לא מוכר</span>' : '') + '</h3>' +
         '<span class="cnt">' + got + '/' + all.length + '</span><span class="spacer"></span></div>' +
@@ -1174,32 +1225,33 @@
           rank(i, sManual) +
           '<input type="checkbox"' + (got ? ' checked' : '') + ' data-act="toggle" data-coll="shopping" data-id="' + s.id + '" data-field="bought">' +
           '<div class="t">' + titleBox('shopping', s.id, 'name', s.name) +
-          '<div class="shopmeta buy">' +
-          '<select ' + bind('shopping', s.id, 'prio') + ' class="mini' + (s.prio === 'must' && !s.bought ? ' urgent' : '') + '">' +
-          optsWith(SHOP_PRIO, s.prio, 'id', 'label') + '</select>' +
-          '<input type="number" inputmode="numeric" min="0" class="mini" placeholder="' +
+          '<div class="shopmeta ' + (sup ? 'super' : 'buy') + (mv ? ' moved' : '') + '">' +
+          (mv ? '' : '<select ' + bind('shopping', s.id, 'prio') + ' class="mini' + (s.prio === 'must' && !s.bought ? ' urgent' : '') + '">' +
+          optsWith(SHOP_PRIO, s.prio, 'id', 'label') + '</select>') +
+          (sup ? '' : '<input type="number" inputmode="numeric" min="0" class="mini" placeholder="' +
           (gift ? '—' : 'משוער ₪') + '" value="' + (gift ? '' : (s.est || '')) + '"' +
           (gift ? ' disabled' : '') + ' ' + bind('shopping', s.id, 'est') + '>' +
           // בפריט שהתקבל במתנה אין מה למלא: השדה נשאר במקומו כדי לשמור על היישור, אבל נעול
           '<input type="number" inputmode="numeric" min="0" class="mini" placeholder="' +
           (gift ? '—' : 'שולם ₪') + '" value="' + (gift ? '' : (s.cost || '')) + '"' +
-          (gift ? ' disabled' : '') + ' ' + bind('shopping', s.id, 'cost') + '>' +
+          (gift ? ' disabled' : '') + ' ' + bind('shopping', s.id, 'cost') + '>') +
           '<input class="mini" placeholder="חנות" value="' + esc(s.store || '') + '" ' + bind('shopping', s.id, 'store') + '>' +
-          '<select class="mini" title="העברה לקטגוריה אחרת" ' + bind('shopping', s.id, 'area') + '>' +
-          optsWith(state.shopAreas, s.area) + '</select>' +
+          (sup ? '' : '<select class="mini" title="העברה לקטגוריה אחרת" ' + bind('shopping', s.id, 'area') + '>' +
+          optsWith(state.shopAreas, s.area) + '</select>') +
           '</div></div>' +
           // 🎁 ו-🔗 יושבים בשורת הכותרת ליד ה-✕, בגובה אחיד: אלה מצבים של הפריט
           // כולו ולא שדות בשורת הפרטים, ובמילים אין צורך כשהאייקון דולק או כבוי.
-          flagBtn('shopping', s, 'gift', '🎁',
+          (sup ? '' : flagBtn('shopping', s, 'gift', '🎁',
             'התקבל במתנה – נספר כנקנה ותורם 0 להוצאה', 'סימון כמתנה') +
-          linkBtn('shopping', s) +
+          linkBtn('shopping', s)) +
           '<button class="x" data-act="del" data-coll="shopping" data-id="' + s.id + '" title="מחיקה">✕</button></div>';
       });
       // אותה שורת סיכום כמו בתקציב: כמה תוכנן לקטגוריה וכמה יצא בפועל
-      h += '</div><div class="sectotal"><span>סה"כ</span><span class="spacer"></span>' +
+      h += '</div>' + (sup ? '' : '<div class="sectotal"><span>' +
+        (filtering('shopping') ? 'סה"כ המוצג' : 'סה"כ') + '</span><span class="spacer"></span>' +
         '<span class="small muted">משוער</span><b data-total="ssec:est:' + esc(g.key) + '">' + nis(ast.est) + '</b>' +
         '<span class="small muted">בפועל</span><b data-total="ssec:spend:' + esc(g.key) + '">' + nis(ast.spend) + '</b>' +
-        '</div>' +
+        '</div>') +
         // הוספה מתוך הקטגוריה עצמה, כמו בתקציב – בלי לגלול לראש המסך.
         // קבוצת "ללא אזור" אינה קטגוריה אמיתית ולכן אין לה כפתור.
         (g.unknown ? '' : '<div class="row" style="margin-top:10px">' +
@@ -1211,7 +1263,7 @@
     // שורה תחתונה למה שמוצג עכשיו: כשמסננים לפי חנות או עדיפות,
     // השאלה המעשית היא כמה זה עולה שם – ולא מה סך הכול. הכרטיס
     // מופיע רק כשיש סינון פעיל, כדי שלא ישכפל את הכרטיס שבראש המסך.
-    if (filtering('shopping') && shopShown) {
+    if (!sup && filtering('shopping') && shopShown) {
       var fst = C.listStats(state.shopping.filter(shopFilterPass));
       h += '<div class="card"><h2>סיכום לפי הסינון <span class="sub">' +
         fst.total + ' מתוך ' + sh.total + ' פריטים</span></h2>' +
@@ -1233,7 +1285,7 @@
     }
 
     // --- ניהול קטגוריות הקניות ---
-    h += '<div class="card"><h2>קטגוריות</h2><div class="row">' +
+    if (!sup) h += '<div class="card"><h2>קטגוריות</h2><div class="row">' +
       '<input id="nsaName" placeholder="קטגוריה חדשה" style="flex:2 1 180px">' +
       '<button class="btn primary" data-act="add-shop-area">הוספה</button></div>' +
       '<div class="seclist">' + groups.map(function (g) {
@@ -2162,7 +2214,7 @@
       if (!sn.value.trim()) { sn.focus(); return; }
       var ns = {
         id: uid(), area: $('#nsArea').value, name: sn.value.trim(),
-        prio: $('#nsPrio').value, est: 0, cost: 0, store: '', link: '', bought: false, gift: false
+        prio: $('#nsPrio') ? $('#nsPrio').value : 'soon', est: 0, cost: 0, store: '', link: '', bought: false, gift: false
       };
       var sDrop = applyFilterDefaults('shopping', ns, ['area', 'prio']);
       state.shopping.push(ns);
@@ -2193,6 +2245,21 @@
       // לחיצה ארוכה כבר פתחה את העריכה – הקליק שאחריה לא אמור גם לפתוח את הקישור
       if (linkPress.fired) { linkPress.fired = false; return; }
       openLink(el.dataset.coll, el.dataset.id);
+    }
+    else if (act === 'super-mode') {
+      // כניסה: חנות = סופר, מצב = שטרם נקנו. יציאה: הערכים שהיו לפני כן חוזרים.
+      if (!superMode) {
+        superPrev = { store: filt('shopping', 'store'), bought: filt('shopping', 'bought') };
+        setFilter('shopping', 'store', SUPER_STORE);
+        setFilter('shopping', 'bought', '0');
+        superMode = true;
+      } else {
+        var prev = superPrev || {};
+        setFilter('shopping', 'store', prev.store || '');
+        setFilter('shopping', 'bought', prev.bought || '');
+        superMode = false; superPrev = null;
+      }
+      render();
     }
     else if (act === 'clear-filters') {
       clearFilters(el.dataset.view);
@@ -2395,7 +2462,7 @@
       if (kind === 'bg') src = (bg = bg || budgetTotals());
       else if (kind === 'sh') src = (sh = sh || shopStats());
       else if (kind === 'bsec') src = sectionStats(key);
-      else if (kind === 'ssec') src = areaStats(key);
+      else if (kind === 'ssec') src = shownAreaStats(key);
       else if (kind === 'sfil') src = (sfil = sfil || C.listStats(state.shopping.filter(shopFilterPass)));
       if (src && src[field] != null) n.textContent = nis(src[field]);
     });
