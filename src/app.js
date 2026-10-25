@@ -1251,12 +1251,13 @@
         // היא המקום שבו סופרים את זה. כל שדה יושב בתא קבוע ברשת, כדי שכל השורות יתיישרו.
         var gift = C.isGift(s), got = C.isBought(s);
         // במצב סופר: label שלם סביב תיבת הסימון, כך שלחיצה בכל מקום בשורה מסמנת.
-        // בלי ✕ – מחיקה בטעות מול המדף. פריט בלי שם (חדש) מקבל את השורה הרגילה.
+        // ה-✕ הוא button, ולכן לחיצה עליו לא מסמנת. פריט בלי שם (חדש) מקבל את השורה הרגילה.
         if (sup && s.name) {
           h += '<label class="suprow' + (got ? ' done' : '') + '">' +
             '<input type="checkbox"' + (got ? ' checked' : '') + ' data-act="toggle" data-coll="shopping" data-id="' + s.id + '" data-field="bought">' +
             '<span class="supname">' + esc(s.name) + '</span>' +
-            (!mv && s.prio === 'must' && !got ? '<span class="tag warn">ליום הראשון</span>' : '') + '</label>';
+            (!mv && s.prio === 'must' && !got ? '<span class="tag warn">ליום הראשון</span>' : '') +
+            '<button type="button" class="x" data-act="del" data-coll="shopping" data-id="' + s.id + '" title="מחיקה" aria-label="מחיקה">✕</button></label>';
           return;
         }
         h += '<div class="task' + (got ? ' done' : '') + '" data-drag-item data-id="' + s.id + '">' +

@@ -533,6 +533,7 @@ select.mini.urgent{background:var(--warn-soft);color:var(--warn);border-color:tr
 .suprow:last-child{border-bottom:0}
 .suprow:active{background:var(--line)}
 .suprow input[type=checkbox]{width:28px;height:28px;margin:0;flex:none;accent-color:var(--brand)}
+.suprow .x{flex:none;width:40px;height:40px;font-size:18px;padding:0}
 .suprow .supname{flex:1;font-size:18px;font-weight:500;line-height:1.35;word-break:break-word}
 .suprow.done .supname{text-decoration:line-through;color:var(--muted)}
 

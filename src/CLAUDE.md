@@ -295,8 +295,9 @@ store registry: a store no item uses any more drops out of the list by itself.
 Super mode (`superMode`, fixed filters store = סופר · not bought) is a shopping-trip view, so
 it renders differently, not just with fewer fields: one `.supbar` card (count left + exit)
 instead of the toolbar; each named item is a `label.suprow` wrapping its checkbox, so a tap
-anywhere on the row ticks it (56px rows, 28px checkbox, 18px text); no ✕ (accidental deletes in
-an aisle), no rank/drag, no per-category "➕ פריט חדש"; the פריט חדש card moves to the bottom
+anywhere on the row ticks it (56px rows, 28px checkbox, 18px text); a 40px ✕ deletes (the user
+asked for it back after it was removed; being a `<button>` inside the label, it does not tick
+the checkbox), no rank/drag, no per-category "➕ פריט חדש"; the פריט חדש card moves to the bottom
 without the עדיפות select. Before the move a "ליום הראשון" tag still marks `must` items.
 An item with an empty name falls back to the normal editable row.
 
